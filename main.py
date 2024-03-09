@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 import pyray as rl
-from pyray import Color, KeyboardKey, Matrix, Vector2, Vector3, Vector4
+from pyray import Color, KeyboardKey, Matrix, Rectangle, Vector2, Vector3, Vector4
 from raylib.defines import PI
 
 BLACK = Color(0, 0, 0, 255)
@@ -115,7 +115,6 @@ def main():
     sun_u_time = rl.get_shader_location(sun_shader, "time")
 
     sun_texture = rl.load_texture("./sun.jpg")
-    # rl.set_texture_wrap(sun_texture, rl.TextureWrap.TEXTURE_WRAP_MIRROR_REPEAT)
 
     sun_mat = rl.load_material_default()
     sun_mat.maps[rl.MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = sun_texture
@@ -128,8 +127,14 @@ def main():
 
     rl.disable_cursor()
 
+    post_process_shader = rl.load_shader("", "post_process.glsl")
+    sun_render = rl.load_render_texture(800, 800)
+
     dt = 1 / 60
     while not rl.window_should_close():
+        if rl.is_window_resized():
+            sun_render = rl.load_render_texture(rl.get_render_width(), rl.get_render_height())
+
         update_camera(camera)
 
         apply_gravity(1, planets)
@@ -143,7 +148,8 @@ def main():
         rl.set_shader_value(sun_shader, sun_u_view_pos, camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
         rl.set_shader_value(sun_shader, sun_u_time, rl.get_time(), rl.ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
 
-        rl.begin_drawing()
+        # render 3d scene
+        rl.begin_texture_mode(sun_render)
         rl.clear_background(BLACK)
 
         rl.begin_mode_3d(camera)
@@ -151,14 +157,30 @@ def main():
         # draw sun
         rl.draw_mesh(sphere, sun_mat, planets[0].transform)
 
+        rl.end_mode_3d()
+        rl.end_texture_mode()
+
+        rl.begin_drawing()
+
+        # draw sun with bloom 
+        rl.begin_shader_mode(post_process_shader)
+
+        src = Rectangle(0, 0, rl.get_render_width(), -rl.get_render_height())
+        dest = Rectangle(0, 0, rl.get_render_width(), rl.get_render_height())
+        rl.draw_texture_pro(sun_render.texture, src, dest, Vector2(0, 0), 0.0, WHITE)
+        rl.end_shader_mode()
+
+        rl.begin_mode_3d(camera)
+
         # draw planets
         for i in range(1, len(planets)):
             rl.draw_mesh(sphere, planet_mat, planets[i].transform)
 
-
         rl.end_mode_3d()
 
+        # draw UI
         rl.draw_fps(10, 10)
+        rl.end_texture_mode()
 
         cx = rl.get_render_width()/2
         cy = rl.get_render_height()/2
@@ -167,6 +189,7 @@ def main():
         # rl.draw_text("hello, world!", 10, 40, 20, BLACK)
 
         rl.end_drawing()
+
 
 if __name__ == '__main__':
     main()
