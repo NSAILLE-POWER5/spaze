@@ -14,9 +14,6 @@ uniform vec4 colDiffuse;
 out vec4 finalColor;
 
 // Input lighting values
-// uniform Light lights[MAX_LIGHTS];
-uniform vec4 ambient;
-uniform vec3 sunDir;
 uniform vec3 viewPos;
 
 void main() {
@@ -24,15 +21,10 @@ void main() {
     vec4 texelColor = texture(texture0, fragTexCoord);
 
     vec3 normal = normalize(fragNormal);
-    vec3 viewD = normalize(viewPos - fragPosition);
+	// TODO: Bloom/lens flare depending on view angle
+    // vec3 viewD = normalize(viewPos - fragPosition);
 
-    float lightDot = max(dot(normal, sunDir), 0.0);
-
-    float specular = 0.0;
-	if (lightDot > 0.0) specular = pow(max(0.0, dot(viewD, reflect(-sunDir, normal))), 16.0); // 16 is the alpha value in blinn-phong model
-
-    finalColor = (texelColor*((colDiffuse + vec4(specular, specular, specular, 1.0))*vec4(lightDot, lightDot, lightDot, 1.0)));
-    finalColor += texelColor*(ambient/10.0)*colDiffuse;
+	finalColor = texelColor * vec4(1.0, 0.8, 0.0, 1.0);
 
     // Gamma correction
     finalColor = pow(finalColor, vec4(1.0/2.2));
