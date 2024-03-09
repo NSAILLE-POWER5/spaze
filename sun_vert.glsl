@@ -23,7 +23,7 @@ void main()
 {
     // Send vertex attributes to fragment shader
 	vec3 pos = vertexPosition;
-	pos += vertexNormal*sin(pos.x + pos.y*10.0 + time*0.5)*cos(pos.z)*0.05;
+	pos += vertexNormal*sin(pos.x + pos.y*10.0 + time*0.5)*cos(pos.z)*0.02;
 
     fragPosition = vec3(matModel*vec4(pos, 1.0));
     fragTexCoord = vertexTexCoord;
