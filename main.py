@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Self
-from math import sqrt, cos, sin, tan, log1p
+from math import inf, sqrt, cos, sin, tan, log1p
 
 import pyray as rl
-from pyray import Camera3D, Color, KeyboardKey, Matrix, PixelFormat, Rectangle, Vector2, Vector3, Vector4
+from pyray import Camera3D, Color, KeyboardKey, Matrix, Rectangle, Vector2, Vector3, Vector4
 from raylib.defines import DEG2RAD, PI
 
 BLACK = Color(0, 0, 0, 255)
@@ -133,6 +133,8 @@ class Player:
         self.camera.target = rl.vector3_add(self.camera.position, forward)
 
     def apply_gravity(self, G: float, dt: float, planets: list[Planet]):
+        closest, closest_dist = -1, inf
+
         acc = vec3_zero()
         for i in range(len(planets)):
             p = planets[i]
@@ -141,6 +143,9 @@ class Player:
             distance = rl.vector3_length(dir)
             if distance < 0.05:
                 continue # avoid numerical explosion
+            if distance < closest_dist:
+                closest = i
+                closest_dist = distance
 
             normalized = rl.vector3_scale(dir, 1.0 / distance) # normalize `dir`
             acceleration = G * p.mass / (distance*distance)
@@ -203,14 +208,26 @@ def main():
 
     rl.disable_cursor()
 
-    post_process_shader = rl.load_shader("", "post_process.glsl")
-    # sun_render = rl.load_render_texture(800, 800)
+    bloom_shader = rl.load_shader("", "bloom.glsl")
+
+    bloom_target = rl.load_render_texture(800, 800)
+    target = rl.load_render_texture(800, 800)
+    rl.set_texture_wrap(target.texture, rl.TextureWrap.TEXTURE_WRAP_CLAMP)
 
     selected_planet = -1
 
     G = 5
     dt = 1 / 60
     while not rl.window_should_close():
+        inverted_render_rect = Rectangle(0, 0, rl.get_render_width(), -rl.get_render_height())
+        if rl.is_window_resized():
+            rl.unload_render_texture(bloom_target)
+            rl.unload_render_texture(target)
+
+            bloom_target = rl.load_render_texture(rl.get_render_width(), rl.get_render_height())
+            target = rl.load_render_texture(rl.get_render_width(), rl.get_render_height())
+            rl.set_texture_wrap(target.texture, rl.TextureWrap.TEXTURE_WRAP_CLAMP)
+
         cx = rl.get_render_width()/2
         cy = rl.get_render_height()/2
 
@@ -230,6 +247,8 @@ def main():
                         selected_planet = -1
                     else:
                         selected_planet = i
+        if rl.is_key_down(rl.KeyboardKey.KEY_G):
+            player.camera.target = Vector3(0, 0, 0)
 
         rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
         rl.set_shader_value(planet_shader, u_sun_pos, planets[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
@@ -237,21 +256,36 @@ def main():
         rl.set_shader_value(sun_shader, sun_u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
         rl.set_shader_value(sun_shader, sun_u_time, rl.get_time(), rl.ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
 
-        rl.begin_drawing()
+        # render sun first to the target texture
+        rl.begin_texture_mode(target)
         rl.clear_background(BLACK)
 
         rl.begin_mode_3d(player.camera)
-
-        # draw sun with bloom 
-        rl.begin_shader_mode(post_process_shader)
         rl.draw_mesh(sphere, sun_mat, planets[0].transform)
+        rl.end_mode_3d()
+
+        rl.end_texture_mode()
+
+        # apply bloom effect to sun on other texture
+        rl.begin_texture_mode(bloom_target)
+
+        rl.begin_shader_mode(bloom_shader)
+        rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE);
         rl.end_shader_mode()
 
+        rl.end_texture_mode()
+
+        # start normal rendering
+        rl.begin_texture_mode(target)
+
+        # copy the info back
+        rl.draw_texture_rec(bloom_target.texture, inverted_render_rect, Vector2(0, 0), WHITE);
+
         # draw planets
+        rl.begin_mode_3d(player.camera)
         for i in range(1, len(planets)):
             planet = planets[i]
             rl.draw_mesh(sphere, planet_mat, planet.transform)
-
         rl.end_mode_3d()
 
         # draw UI
@@ -276,9 +310,11 @@ def main():
         rl.draw_line_v(Vector2(cx, cy - 6), Vector2(cx, cy + 6), WHITE)
         rl.draw_line_v(Vector2(cx - 6, cy), Vector2(cx + 6, cy), WHITE)
 
-        # rl.draw_texture_ex(sun_render.texture, Vector2(0, 0), 0.0, 0.1, WHITE);
-        # rl.draw_texture_ex(sun_render.depth, Vector2(80, 0), 0.0, 0.1, WHITE);
+        rl.end_texture_mode()
 
+        # draw target to screen
+        rl.begin_drawing()
+        rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE);
         rl.end_drawing()
 
 

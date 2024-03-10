@@ -12,7 +12,7 @@ uniform vec4 colDiffuse;
 out vec4 finalColor;
 
 const vec2 size = vec2(800, 800);
-const float samples = 5.0;
+const float samples = 10.0;
 const float quality = 2.5;
 
 void main() {
@@ -22,7 +22,7 @@ void main() {
     // Texel color fetching from texture sampler
     vec4 source = texture2D(texture0, fragTexCoord);
 
-    const int range = 2;            // should be = (samples - 1)/2;
+    const int range = int((samples - 1)/2);            // should be = (samples - 1)/2;
 
     for (int x = -range; x <= range; x++)
     {
