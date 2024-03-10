@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Self
-from math import sqrt, cos, sin
+from math import sqrt, cos, sin, tan, log1p
 
 import pyray as rl
 from pyray import Camera3D, Color, KeyboardKey, Matrix, PixelFormat, Rectangle, Vector2, Vector3, Vector4
-from raylib.defines import PI
+from raylib.defines import DEG2RAD, PI
 
 BLACK = Color(0, 0, 0, 255)
 RAYWHITE = Color(245, 245, 245, 255)
@@ -12,9 +12,25 @@ WHITE = Color(255, 255, 255, 255)
 BLANK = Color(0, 0, 0, 0)
 RED = Color(255, 0, 0, 255)
 
-def vec3_zero():
+def vec3_zero() -> Vector3:
     return Vector3(0, 0, 0)
 
+def print_vec3(v: Vector3):
+    print(v.x, v.y, v.z)
+
+def cot(x: float) -> float:
+    """Returns the cotangent of `x`"""
+    return 1 / tan(x)
+
+def get_projected_sphere_radius(cam: Camera3D, screen_height: float, center: Vector3, radius: float) -> float:
+    """Get the screen space radius a sphere will be drawn as in pixels"""
+    # https://stackoverflow.com/a/21649403
+
+    d = rl.vector_3distance(cam.position, center)
+    # convert camera fov to radians
+    fov = cam.fovy*DEG2RAD / 2
+    pr = cot(fov) * radius / sqrt(d*d - radius*radius)
+    return pr * screen_height / 2
 
 @dataclass
 class Planet:
@@ -81,7 +97,7 @@ class Player:
     def update(self, dt: float):
         """Update camera view angle and speed with inputs, and integrate position over speed"""
         mouse_speed = 1.0
-        move_speed = 0.05
+        move_speed = 0.2
 
         # change view angles
         up = self.camera.up
@@ -130,6 +146,7 @@ class Player:
             acceleration = G * p.mass / (distance*distance)
             acc = rl.vector3_add(acc, rl.vector3_scale(normalized, acceleration))
         self.vel = rl.vector3_add(self.vel, rl.vector3_scale(acc, dt))
+        self.camera.target = rl.vector3_add(self.camera.target, rl.vector3_scale(acc, dt))
 
 
 def main():
@@ -160,12 +177,16 @@ def main():
     sun_mat.maps[rl.MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = sun_texture
     sun_mat.shader = sun_shader
 
-    planets = [ Planet(0, None, 5000, 10 ) ]
+    planets = [ Planet(0, None, 5000, 20 ) ]
 
     planets.extend([
-        Planet(180, planets[0], 50, 2.5),
-        Planet(290, planets[0], 40, 2),
-        Planet(500, planets[0], 600, 8),
+        Planet(180, planets[0], 50, 5),
+        Planet(290, planets[0], 40, 4),
+        Planet(500, planets[0], 600, 16),
+    ])
+
+    planets.extend([
+        Planet(40, planets[3], 5, 1)
     ])
 
     player = Player(
@@ -185,15 +206,30 @@ def main():
     post_process_shader = rl.load_shader("", "post_process.glsl")
     # sun_render = rl.load_render_texture(800, 800)
 
-    G = 50
+    selected_planet = -1
+
+    G = 5
     dt = 1 / 60
     while not rl.window_should_close():
+        cx = rl.get_render_width()/2
+        cy = rl.get_render_height()/2
+
         for planet in planets:
             planet.orbit(G, dt)
             planet.compute_transform()
 
         player.apply_gravity(G, dt, planets)
         player.update(dt)
+
+        if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
+            ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
+            for i, planet in enumerate(planets):
+                coll = rl.get_ray_collision_sphere(ray, planet.pos, planet.radius)
+                if coll.hit:
+                    if selected_planet == i:
+                        selected_planet = -1
+                    else:
+                        selected_planet = i
 
         rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
         rl.set_shader_value(planet_shader, u_sun_pos, planets[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
@@ -215,15 +251,28 @@ def main():
         for i in range(1, len(planets)):
             planet = planets[i]
             rl.draw_mesh(sphere, planet_mat, planet.transform)
-            rl.draw_line_3d(planet.pos, rl.vector3_add(planet.pos, rl.vector3_scale(planet.vel, 60)), RED)
 
         rl.end_mode_3d()
 
         # draw UI
         rl.draw_fps(10, 10)
 
-        cx = rl.get_render_width()/2
-        cy = rl.get_render_height()/2
+        if selected_planet != -1:
+            # show the relative velocity between the player and the selected planet
+            planet = planets[selected_planet]
+            p1 = rl.get_world_to_screen(planet.pos, player.camera)
+            vel = rl.vector3_subtract(player.vel, planet.vel)
+            # divide by sqrt(length) 
+            # make speed scale logarithmically
+            vel_length = rl.vector3_length(vel)
+            vel = rl.vector3_scale(vel, 5*log1p(vel_length) / vel_length)
+
+            p2 = rl.get_world_to_screen(rl.vector3_add(planet.pos, vel), player.camera)
+            rl.draw_line_v(Vector2(p1.x, p1.y), Vector2(p2.x, p2.y), WHITE)
+
+            projected_radius = get_projected_sphere_radius(player.camera, rl.get_render_height(), planet.pos, planet.radius)
+            rl.draw_circle_lines_v(p1, projected_radius + 10, WHITE)
+
         rl.draw_line_v(Vector2(cx, cy - 6), Vector2(cx, cy + 6), WHITE)
         rl.draw_line_v(Vector2(cx - 6, cy), Vector2(cx + 6, cy), WHITE)
 
