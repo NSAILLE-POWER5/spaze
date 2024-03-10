@@ -19,19 +19,51 @@ def vec3_zero():
 @dataclass
 class Planet:
     pos: Vector3
+    vel: Vector3 # instantaneous velocity
     orbit_radius: float
     orbit_angle: float
+    orbit_center: Self | None
     mass: float
     radius: float
     transform: Matrix
 
-    def orbit(self, G: float, sun: Self, dt: float):
+    def __init__(self, orbit_radius: float, orbit_center: Self | None, mass: float, radius: float):
+        self.pos = vec3_zero()
+        self.vel = vec3_zero()
+        self.orbit_radius = orbit_radius
+        self.orbit_angle = 0
+        self.orbit_center = orbit_center
+        self.mass = mass
+        self.radius = radius
+        self.transform = rl.matrix_identity()
+
+    def orbit(self, G: float, dt: float):
         """Simulate perfectly circular orbit with keplerian mechanics"""
-        angular_speed = sqrt(G * sun.mass / (self.orbit_radius*self.orbit_radius))
+        if self.orbit_center == None:
+            return
+
+        # For a perfectly circular orbit: (https://en.wikipedia.org/wiki/Circular_orbit)
+        # acceleration = angular_speed^2 * radius
+        # angular_speed = sqrt(acceleration / radius)
+
+        # acceleration = G * m1 * m2 / radius^2 / m2
+        #              = G * m1 / radius^2
+        #
+        # angular_speed = sqrt(G * m1 / radius^3)
+
+        angular_speed = sqrt(G * self.orbit_center.mass / (self.orbit_radius**3))
         self.orbit_angle += angular_speed*dt
         if self.orbit_angle > 2*PI:
             self.orbit_angle -= 2*PI
         self.pos = Vector3(cos(self.orbit_angle)*self.orbit_radius, 0, sin(self.orbit_angle)*self.orbit_radius)
+        self.pos = rl.vector3_add(self.pos, self.orbit_center.pos)
+
+        # get instantaneous velocity:
+        # velocity^2 / r = angular_speed^2 * r
+        # velocity = sqrt(angular_speed^2 * r^2)
+        # velocty = angular_speed * r
+        velocity = angular_speed * self.orbit_radius
+        self.vel = rl.vector3_scale(Vector3(-sin(self.orbit_angle), 0, cos(self.orbit_angle)), velocity)
 
     def compute_transform(self):
         radius = self.radius
@@ -49,7 +81,7 @@ class Player:
     def update(self, dt: float):
         """Update camera view angle and speed with inputs, and integrate position over speed"""
         mouse_speed = 1.0
-        move_speed = 0.5
+        move_speed = 0.05
 
         # change view angles
         up = self.camera.up
@@ -84,7 +116,7 @@ class Player:
         self.camera.position = self.pos
         self.camera.target = rl.vector3_add(self.camera.position, forward)
 
-    def apply_gravity(self, G: float, planets: list[Planet]):
+    def apply_gravity(self, G: float, dt: float, planets: list[Planet]):
         acc = vec3_zero()
         for i in range(len(planets)):
             p = planets[i]
@@ -97,6 +129,7 @@ class Player:
             normalized = rl.vector3_scale(dir, 1.0 / distance) # normalize `dir`
             acceleration = G * p.mass / (distance*distance)
             acc = rl.vector3_add(acc, rl.vector3_scale(normalized, acceleration))
+        self.vel = rl.vector3_add(self.vel, rl.vector3_scale(acc, dt))
 
 
 def main():
@@ -127,18 +160,19 @@ def main():
     sun_mat.maps[rl.MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = sun_texture
     sun_mat.shader = sun_shader
 
-    planets = [
-        Planet(vec3_zero(), 0, 0, 300, 15, rl.matrix_identity()),
-        Planet(vec3_zero(), 20, 0, 10, 1.5, rl.matrix_identity()),
-        Planet(vec3_zero(), 50, 0, 4, 1, rl.matrix_identity()),
-        Planet(vec3_zero(), 120, 0, 30, 2, rl.matrix_identity()),
-    ]
+    planets = [ Planet(0, None, 5000, 10 ) ]
+
+    planets.extend([
+        Planet(180, planets[0], 50, 2.5),
+        Planet(290, planets[0], 40, 2),
+        Planet(500, planets[0], 600, 8),
+    ])
 
     player = Player(
-        Vector3(0, 0, -50),
+        Vector3(0, 0, -300),
         Vector3(5, 0, 0),
         rl.Camera3D(
-            Vector3(0, 0, -50),
+            Vector3(0, 0, -150),
             Vector3(0, 0, 0),
             Vector3(0, 1, 0),
             60,
@@ -151,18 +185,15 @@ def main():
     post_process_shader = rl.load_shader("", "post_process.glsl")
     # sun_render = rl.load_render_texture(800, 800)
 
+    G = 50
     dt = 1 / 60
     while not rl.window_should_close():
-        player.apply_gravity(20, planets)
-        player.update(dt)
-
-        # apply_gravity(1, planets)
-        for i in range(1, len(planets)):
-            # planet.integrate(dt)
-            planets[i].orbit(1, planets[0], dt)
-
         for planet in planets:
+            planet.orbit(G, dt)
             planet.compute_transform()
+
+        player.apply_gravity(G, dt, planets)
+        player.update(dt)
 
         rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
         rl.set_shader_value(planet_shader, u_sun_pos, planets[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
@@ -182,9 +213,9 @@ def main():
 
         # draw planets
         for i in range(1, len(planets)):
-            rl.draw_mesh(sphere, planet_mat, planets[i].transform)
-
-        rl.draw_circle_3d(vec3_zero(), 50, Vector3(1, 0, 0), 90, RED)
+            planet = planets[i]
+            rl.draw_mesh(sphere, planet_mat, planet.transform)
+            rl.draw_line_3d(planet.pos, rl.vector3_add(planet.pos, rl.vector3_scale(planet.vel, 60)), RED)
 
         rl.end_mode_3d()
 
