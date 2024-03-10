@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Self
+from typing import Self, TypeAlias
 from math import inf, sqrt, cos, sin, tan, log1p
 
 import pyray as rl
@@ -12,6 +12,8 @@ WHITE = Color(255, 255, 255, 255)
 BLANK = Color(0, 0, 0, 0)
 RED = Color(255, 0, 0, 255)
 
+Quat: TypeAlias = Vector4
+
 def vec3_zero() -> Vector3:
     return Vector3(0, 0, 0)
 
@@ -23,10 +25,15 @@ def cot(x: float) -> float:
     return 1 / tan(x)
 
 def get_projected_sphere_radius(cam: Camera3D, screen_height: float, center: Vector3, radius: float) -> float:
-    """Get the screen space radius a sphere will be drawn as in pixels"""
+    """
+    Get the screen space radius a sphere will be drawn as in pixels.
+    Returns 0 if the camera is inside the sphere.
+    """
     # https://stackoverflow.com/a/21649403
 
     d = rl.vector_3distance(cam.position, center)
+    if d < radius:
+        return 0
     # convert camera fov to radians
     fov = cam.fovy*DEG2RAD / 2
     pr = cot(fov) * radius / sqrt(d*d - radius*radius)
@@ -93,23 +100,36 @@ class Player:
     pos: Vector3
     vel: Vector3
     camera: Camera3D
+    rotation: Quat
+    target_rotation: Quat
 
     def update(self, dt: float):
         """Update camera view angle and speed with inputs, and integrate position over speed"""
-        mouse_speed = 1.0
+        mouse_speed = 0.01
+        roll_speed = 0.01
         move_speed = 0.2
 
         # change view angles
-        up = self.camera.up
-        forward = rl.vector3_normalize(rl.vector3_subtract(self.camera.target, self.camera.position))
+        rot_matrix = rl.quaternion_to_matrix(self.rotation)
+
+        forward = rl.vector3_transform(Vector3(0, 0, -1), rot_matrix)
+        up = rl.vector3_transform(Vector3(0, 1, 0), rot_matrix)
+        right = rl.vector3_transform(Vector3(1, 0, 0), rot_matrix)
 
         d = rl.get_mouse_delta()
-        if d.x != 0.0: # handle yaw = rotate around y axis
-            forward = rl.vector3_rotate_by_axis_angle(forward, up, mouse_speed * -d.x/180.0)
+        yaw = rl.quaternion_from_axis_angle(up, -d.x*mouse_speed)
+        pitch = rl.quaternion_from_axis_angle(right, -d.y*mouse_speed)
+        roll = rl.quaternion_from_axis_angle(forward, roll_speed*(float(rl.is_key_down(KeyboardKey.KEY_E))-float(rl.is_key_down(KeyboardKey.KEY_Q))))
 
-        right = rl.vector3_normalize(rl.vector3_cross_product(forward, up))
-        if d.y != 0.0: # handle pitch = rotate around (local) x axis
-            forward = rl.vector3_rotate_by_axis_angle(forward, right, mouse_speed * -d.y/180.0)
+        rot = rl.quaternion_multiply(yaw, pitch)
+        rot = rl.quaternion_multiply(rot, roll)
+        self.target_rotation = rl.quaternion_multiply(rot, self.target_rotation)
+        self.rotation = rl.quaternion_slerp(self.rotation, self.target_rotation, 0.3)
+
+        rot_matrix = rl.quaternion_to_matrix(self.rotation)
+        forward = rl.vector3_transform(Vector3(0, 0, -1), rot_matrix)
+        up = rl.vector3_transform(Vector3(0, 1, 0), rot_matrix)
+        right = rl.vector3_transform(Vector3(1, 0, 0), rot_matrix)
 
         # apply movement
         acc = vec3_zero()
@@ -129,11 +149,13 @@ class Player:
         # update values
         self.vel = rl.vector3_add(self.vel, acc) # don't multiply by dt (impulse instead of force)
         self.pos = rl.vector3_add(self.pos, rl.vector3_scale(self.vel, dt))
+
+        self.camera.up = up
         self.camera.position = self.pos
         self.camera.target = rl.vector3_add(self.camera.position, forward)
 
     def apply_gravity(self, G: float, dt: float, planets: list[Planet]):
-        closest, closest_dist = -1, inf
+        # closest, closest_dist = -1, inf
 
         acc = vec3_zero()
         for i in range(len(planets)):
@@ -143,15 +165,14 @@ class Player:
             distance = rl.vector3_length(dir)
             if distance < 0.05:
                 continue # avoid numerical explosion
-            if distance < closest_dist:
-                closest = i
-                closest_dist = distance
+            # if distance < closest_dist:
+            #     closest = i
+            #     closest_dist = distance
 
             normalized = rl.vector3_scale(dir, 1.0 / distance) # normalize `dir`
             acceleration = G * p.mass / (distance*distance)
             acc = rl.vector3_add(acc, rl.vector3_scale(normalized, acceleration))
         self.vel = rl.vector3_add(self.vel, rl.vector3_scale(acc, dt))
-        self.camera.target = rl.vector3_add(self.camera.target, rl.vector3_scale(acc, dt))
 
 
 def main():
@@ -203,7 +224,9 @@ def main():
             Vector3(0, 1, 0),
             60,
             rl.CameraProjection.CAMERA_PERSPECTIVE
-        )
+        ),
+        rl.quaternion_identity(),
+        rl.quaternion_from_euler(0, PI, 0)
     )
 
     rl.disable_cursor()
@@ -266,7 +289,7 @@ def main():
 
         rl.end_texture_mode()
 
-        # apply bloom effect to sun on other texture
+        # apply bloom effect to the sun
         rl.begin_texture_mode(bloom_target)
 
         rl.begin_shader_mode(bloom_shader)
@@ -278,7 +301,7 @@ def main():
         # start normal rendering
         rl.begin_texture_mode(target)
 
-        # copy the info back
+        # copy texture back
         rl.draw_texture_rec(bloom_target.texture, inverted_render_rect, Vector2(0, 0), WHITE);
 
         # draw planets
@@ -294,18 +317,20 @@ def main():
         if selected_planet != -1:
             # show the relative velocity between the player and the selected planet
             planet = planets[selected_planet]
-            p1 = rl.get_world_to_screen(planet.pos, player.camera)
-            vel = rl.vector3_subtract(player.vel, planet.vel)
-            # divide by sqrt(length) 
-            # make speed scale logarithmically
-            vel_length = rl.vector3_length(vel)
-            vel = rl.vector3_scale(vel, 5*log1p(vel_length) / vel_length)
-
-            p2 = rl.get_world_to_screen(rl.vector3_add(planet.pos, vel), player.camera)
-            rl.draw_line_v(Vector2(p1.x, p1.y), Vector2(p2.x, p2.y), WHITE)
-
             projected_radius = get_projected_sphere_radius(player.camera, rl.get_render_height(), planet.pos, planet.radius)
-            rl.draw_circle_lines_v(p1, projected_radius + 10, WHITE)
+            if projected_radius > 0:
+                p1 = rl.get_world_to_screen(planet.pos, player.camera)
+                vel = rl.vector3_subtract(player.vel, planet.vel)
+
+                # divide by sqrt(length) 
+                # make speed scale logarithmically
+                vel_length = rl.vector3_length(vel)
+                vel = rl.vector3_scale(vel, 5*log1p(vel_length) / vel_length)
+
+                p2 = rl.get_world_to_screen(rl.vector3_add(planet.pos, vel), player.camera)
+                rl.draw_line_v(Vector2(p1.x, p1.y), Vector2(p2.x, p2.y), WHITE)
+
+                rl.draw_circle_lines_v(p1, projected_radius + 10, WHITE)
 
         rl.draw_line_v(Vector2(cx, cy - 6), Vector2(cx, cy + 6), WHITE)
         rl.draw_line_v(Vector2(cx - 6, cy), Vector2(cx + 6, cy), WHITE)
