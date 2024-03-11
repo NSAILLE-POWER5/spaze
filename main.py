@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Self, TypeAlias
-from math import inf, sqrt, cos, sin, tan, log1p
+from math import sqrt, cos, sin, tan, log1p, pi, radians
 
 import pyray as rl
 from pyray import Camera3D, Color, KeyboardKey, Matrix, Rectangle, Vector2, Vector3, Vector4
-from raylib.defines import DEG2RAD, PI
+from raylib import ffi
 
 BLACK = Color(0, 0, 0, 255)
 RAYWHITE = Color(245, 245, 245, 255)
@@ -35,7 +35,7 @@ def get_projected_sphere_radius(cam: Camera3D, screen_height: float, center: Vec
     if d < radius:
         return 0
     # convert camera fov to radians
-    fov = cam.fovy*DEG2RAD / 2
+    fov = radians(cam.fovy) / 2
     pr = cot(fov) * radius / sqrt(d*d - radius*radius)
     return pr * screen_height / 2
 
@@ -76,8 +76,8 @@ class Planet:
 
         angular_speed = sqrt(G * self.orbit_center.mass / (self.orbit_radius**3))
         self.orbit_angle += angular_speed*dt
-        if self.orbit_angle > 2*PI:
-            self.orbit_angle -= 2*PI
+        if self.orbit_angle > 2*pi:
+            self.orbit_angle -= 2*pi
         self.pos = Vector3(cos(self.orbit_angle)*self.orbit_radius, 0, sin(self.orbit_angle)*self.orbit_radius)
         self.pos = rl.vector3_add(self.pos, self.orbit_center.pos)
 
@@ -92,7 +92,7 @@ class Planet:
         radius = self.radius
         pos = self.pos
         self.transform = rl.matrix_scale(radius, radius, radius)
-        self.transform = rl.matrix_multiply(self.transform, rl.matrix_rotate_xyz(Vector3(PI/2, 0.0, rl.get_time()/10.0)))
+        self.transform = rl.matrix_multiply(self.transform, rl.matrix_rotate_xyz(Vector3(pi/2, 0.0, rl.get_time()/10.0)))
         self.transform = rl.matrix_multiply(self.transform, rl.matrix_translate(pos.x, pos.y, pos.z))
 
 @dataclass
@@ -226,7 +226,7 @@ def main():
             rl.CameraProjection.CAMERA_PERSPECTIVE
         ),
         rl.quaternion_identity(),
-        rl.quaternion_from_euler(0, PI, 0)
+        rl.quaternion_from_euler(0, pi, 0)
     )
 
     rl.disable_cursor()
@@ -325,10 +325,11 @@ def main():
                 # divide by sqrt(length) 
                 # make speed scale logarithmically
                 vel_length = rl.vector3_length(vel)
-                vel = rl.vector3_scale(vel, 5*log1p(vel_length) / vel_length)
+                vel = rl.vector3_scale(vel, 2)
 
                 p2 = rl.get_world_to_screen(rl.vector3_add(planet.pos, vel), player.camera)
-                rl.draw_line_v(Vector2(p1.x, p1.y), Vector2(p2.x, p2.y), WHITE)
+                rl.draw_line_v(Vector2(p1.x, p1.y), Vector2(p2.x, p1.y), WHITE)
+                rl.draw_line_v(Vector2(p1.x, p1.y), Vector2(p1.x, p2.y), WHITE)
 
                 rl.draw_circle_lines_v(p1, projected_radius + 10, WHITE)
 
