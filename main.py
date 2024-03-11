@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Self, TypeAlias
-from math import sqrt, cos, sin, tan, log1p, pi, radians
+from math import sqrt, cos, sin, tan, pi, radians, copysign, log1p
 
 import pyray as rl
 from pyray import Camera3D, Color, KeyboardKey, Matrix, Rectangle, Vector2, Vector3, Vector4
@@ -105,7 +105,7 @@ class Player:
 
     def update(self, dt: float):
         """Update camera view angle and speed with inputs, and integrate position over speed"""
-        mouse_speed = 0.01
+        mouse_speed = 0.005
         roll_speed = 0.01
         move_speed = 0.2
 
@@ -264,6 +264,10 @@ def main():
         if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
             ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
             for i, planet in enumerate(planets):
+                # skip if we're looking away from the planet
+                if rl.vector_3dot_product(ray.direction, rl.vector3_subtract(planet.pos, player.pos)) < 0:
+                    continue
+
                 coll = rl.get_ray_collision_sphere(ray, planet.pos, planet.radius)
                 if coll.hit:
                     if selected_planet == i:
@@ -317,21 +321,42 @@ def main():
         if selected_planet != -1:
             # show the relative velocity between the player and the selected planet
             planet = planets[selected_planet]
+            pos_diff = rl.vector3_subtract(planet.pos, player.pos)
             projected_radius = get_projected_sphere_radius(player.camera, rl.get_render_height(), planet.pos, planet.radius)
-            if projected_radius > 0:
-                p1 = rl.get_world_to_screen(planet.pos, player.camera)
+            # don't render if the planet is behind us
+            if projected_radius > 0 and rl.vector_3dot_product(rl.vector3_subtract(player.camera.target, player.pos), pos_diff) > 0:
                 vel = rl.vector3_subtract(player.vel, planet.vel)
-
-                # divide by sqrt(length) 
-                # make speed scale logarithmically
                 vel_length = rl.vector3_length(vel)
-                vel = rl.vector3_scale(vel, 2)
 
-                p2 = rl.get_world_to_screen(rl.vector3_add(planet.pos, vel), player.camera)
+                # scale vector logarithmically
+                vel = rl.vector3_scale(vel, 2*log1p(vel_length) / vel_length)
+
+                # place first point in the direction of the planet (make it appear at its center)
+                # but always have it at a fixed distance to remove perspective effect
+                p1_world = rl.vector3_add(player.pos, rl.vector3_scale(rl.vector3_normalize(pos_diff), 30.0))
+                p1 = rl.get_world_to_screen(p1_world, player.camera)
+                p2 = rl.get_world_to_screen(rl.vector3_add(p1_world, vel), player.camera)
+
+                # Draw thicker line under first (outline)
+
+                rl.draw_circle_v(Vector2(p1.x, p1.y), 3, BLACK)
+                rl.draw_line_ex(Vector2(p1.x, p1.y), Vector2(p2.x, p1.y), 3, BLACK)
+                rl.draw_line_ex(Vector2(p1.x, p1.y), Vector2(p1.x, p2.y), 3, BLACK)
                 rl.draw_line_v(Vector2(p1.x, p1.y), Vector2(p2.x, p1.y), WHITE)
                 rl.draw_line_v(Vector2(p1.x, p1.y), Vector2(p1.x, p2.y), WHITE)
 
-                rl.draw_circle_lines_v(p1, projected_radius + 10, WHITE)
+                radius = projected_radius + 20
+                rl.draw_ring_lines(p1, radius, radius, 22.5, 22.5+45, 24, WHITE)
+                rl.draw_ring_lines(p1, radius, radius, 112.5, 112.5+45, 24, WHITE)
+                rl.draw_ring_lines(p1, radius, radius, 202.5, 202.5+45, 24, WHITE)
+                rl.draw_ring_lines(p1, radius, radius, 292.5, 292.5+45, 24, WHITE)
+
+                # if velocity points in the same direction as player->planet, then velocity is positive
+                # otherwise (points away), it's negative
+                relative_velocity = copysign(vel_length, rl.vector_3dot_product(vel, pos_diff))
+
+                text_y = p1.y - radius - 20 if p1.y > radius + 20 else p1.y + radius + 20
+                rl.draw_text("{:.1f} m/s".format(relative_velocity), int(p1.x + radius + 20), int(text_y), 20, WHITE)
 
         rl.draw_line_v(Vector2(cx, cy - 6), Vector2(cx, cy + 6), WHITE)
         rl.draw_line_v(Vector2(cx - 6, cy), Vector2(cx + 6, cy), WHITE)
