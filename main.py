@@ -50,13 +50,13 @@ class Planet:
     radius: float
     transform: Matrix
 
-    def __init__(self, orbit_radius: float, orbit_center: Self | None, mass: float, radius: float):
+    def __init__(self, orbit_radius: float, orbit_center: Self | None, G: float, surface_gravity: float, radius: float):
         self.pos = vec3_zero()
         self.vel = vec3_zero()
         self.orbit_radius = orbit_radius
         self.orbit_angle = 0
         self.orbit_center = orbit_center
-        self.mass = mass
+        self.mass = radius*radius*surface_gravity / G # set mass based on surface gravity
         self.radius = radius
         self.transform = rl.matrix_identity()
 
@@ -86,7 +86,10 @@ class Planet:
         # velocity = sqrt(angular_speed^2 * r^2)
         # velocty = angular_speed * r
         velocity = angular_speed * self.orbit_radius
+
         self.vel = rl.vector3_scale(Vector3(-sin(self.orbit_angle), 0, cos(self.orbit_angle)), velocity)
+        # add their parent's velocity
+        self.vel = rl.vector3_add(self.vel, self.orbit_center.vel)
 
     def compute_transform(self):
         radius = self.radius
@@ -179,6 +182,10 @@ def main():
     rl.init_window(800, 800, "Spaze")
     rl.set_target_fps(60)
     rl.set_window_state(rl.ConfigFlags.FLAG_WINDOW_RESIZABLE)
+    rl.set_exit_key(rl.KeyboardKey.KEY_NULL)
+
+    G = 5
+    dt = 1 / 60
 
     sphere = rl.gen_mesh_sphere(1, 24, 24)
 
@@ -197,26 +204,26 @@ def main():
     sun_u_view_pos = rl.get_shader_location(sun_shader, "viewPos")
     sun_u_time = rl.get_shader_location(sun_shader, "time")
 
-    sun_texture = rl.load_texture("./sun.jpg")
+    sun_texture = rl.load_texture("./sun.png")
 
     sun_mat = rl.load_material_default()
     sun_mat.maps[rl.MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = sun_texture
     sun_mat.shader = sun_shader
 
-    planets = [ Planet(0, None, 5000, 20 ) ]
+    planets = [ Planet(0, None, G, 30, 200 ) ]
 
     planets.extend([
-        Planet(180, planets[0], 50, 5),
-        Planet(290, planets[0], 40, 4),
-        Planet(500, planets[0], 600, 16),
+        Planet(500, planets[0], G, 6, 50),
+        Planet(800, planets[0], G, 4, 30),
+        Planet(1800, planets[0], G, 12, 100),
     ])
 
     planets.extend([
-        Planet(40, planets[3], 5, 1)
+        Planet(190, planets[3], G, 2, 15)
     ])
 
     player = Player(
-        Vector3(0, 0, -300),
+        Vector3(0, 0, -900),
         Vector3(5, 0, 0),
         rl.Camera3D(
             Vector3(0, 0, -150),
@@ -225,11 +232,17 @@ def main():
             60,
             rl.CameraProjection.CAMERA_PERSPECTIVE
         ),
-        rl.quaternion_identity(),
+        rl.quaternion_from_euler(0, pi, 0),
         rl.quaternion_from_euler(0, pi, 0)
     )
 
-    rl.disable_cursor()
+    # initialize positions and transforms since the game is paused by default
+    # and randomize orbit angles
+    for planet in planets:
+        planet.orbit_angle = rl.get_random_value(0, 1000)/1000 * 2 * pi
+        planet.orbit(G, dt)
+        planet.compute_transform()
+    player.update(dt)
 
     bloom_shader = rl.load_shader("", "bloom.glsl")
 
@@ -239,8 +252,8 @@ def main():
 
     selected_planet = -1
 
-    G = 5
-    dt = 1 / 60
+    paused = True
+
     while not rl.window_should_close():
         inverted_render_rect = Rectangle(0, 0, rl.get_render_width(), -rl.get_render_height())
         if rl.is_window_resized():
@@ -254,28 +267,38 @@ def main():
         cx = rl.get_render_width()/2
         cy = rl.get_render_height()/2
 
-        for planet in planets:
-            planet.orbit(G, dt)
-            planet.compute_transform()
+        if not paused:
+            for planet in planets:
+                planet.orbit(G, dt)
+                planet.compute_transform()
 
-        player.apply_gravity(G, dt, planets)
-        player.update(dt)
+            player.apply_gravity(G, dt, planets)
+            player.update(dt)
 
-        if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
-            ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
-            for i, planet in enumerate(planets):
-                # skip if we're looking away from the planet
-                if rl.vector_3dot_product(ray.direction, rl.vector3_subtract(planet.pos, player.pos)) < 0:
-                    continue
+            if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
+                ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
+                for i, planet in enumerate(planets):
+                    # skip if we're looking away from the planet
+                    if rl.vector_3dot_product(ray.direction, rl.vector3_subtract(planet.pos, player.pos)) < 0:
+                        continue
 
-                coll = rl.get_ray_collision_sphere(ray, planet.pos, planet.radius)
-                if coll.hit:
-                    if selected_planet == i:
-                        selected_planet = -1
-                    else:
-                        selected_planet = i
-        if rl.is_key_down(rl.KeyboardKey.KEY_G):
-            player.camera.target = Vector3(0, 0, 0)
+                    coll = rl.get_ray_collision_sphere(ray, planet.pos, planet.radius)
+                    if coll.hit:
+                        if selected_planet == i:
+                            selected_planet = -1
+                        else:
+                            selected_planet = i
+            if rl.is_key_pressed(rl.KeyboardKey.KEY_ESCAPE):
+                rl.enable_cursor()
+                paused = True
+        else:
+            for planet in planets:
+                planet.compute_transform()
+
+            if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
+                rl.disable_cursor()
+                paused = False
+
 
         rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
         rl.set_shader_value(planet_shader, u_sun_pos, planets[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
@@ -325,25 +348,28 @@ def main():
             projected_radius = get_projected_sphere_radius(player.camera, rl.get_render_height(), planet.pos, planet.radius)
             # don't render if the planet is behind us
             if projected_radius > 0 and rl.vector_3dot_product(rl.vector3_subtract(player.camera.target, player.pos), pos_diff) > 0:
+                # don't let the radius get bigger than half the screen
+                projected_radius = min(min(projected_radius, cx), cy)
+
                 vel = rl.vector3_subtract(player.vel, planet.vel)
-                vel_length = rl.vector3_length(vel)
 
                 # scale vector logarithmically
-                vel = rl.vector3_scale(vel, 2*log1p(vel_length) / vel_length)
+                vel_length = rl.vector3_length(vel)
+                scaled_vel = rl.vector3_scale(vel, 2*log1p(vel_length) / vel_length)
 
                 # place first point in the direction of the planet (make it appear at its center)
                 # but always have it at a fixed distance to remove perspective effect
                 p1_world = rl.vector3_add(player.pos, rl.vector3_scale(rl.vector3_normalize(pos_diff), 30.0))
                 p1 = rl.get_world_to_screen(p1_world, player.camera)
-                p2 = rl.get_world_to_screen(rl.vector3_add(p1_world, vel), player.camera)
+                p2 = rl.get_world_to_screen(rl.vector3_add(p1_world, scaled_vel), player.camera)
 
                 # Draw thicker line under first (outline)
 
-                rl.draw_circle_v(Vector2(p1.x, p1.y), 3, BLACK)
-                rl.draw_line_ex(Vector2(p1.x, p1.y), Vector2(p2.x, p1.y), 3, BLACK)
-                rl.draw_line_ex(Vector2(p1.x, p1.y), Vector2(p1.x, p2.y), 3, BLACK)
-                rl.draw_line_v(Vector2(p1.x, p1.y), Vector2(p2.x, p1.y), WHITE)
-                rl.draw_line_v(Vector2(p1.x, p1.y), Vector2(p1.x, p2.y), WHITE)
+                rl.draw_circle_v(p1, 3, BLACK)
+                rl.draw_line_ex(p1, Vector2(p2.x, p1.y), 3, BLACK)
+                rl.draw_line_ex(p1, Vector2(p1.x, p2.y), 3, BLACK)
+                rl.draw_line_v(p1, Vector2(p2.x, p1.y), WHITE)
+                rl.draw_line_v(p1, Vector2(p1.x, p2.y), WHITE)
 
                 radius = projected_radius + 20
                 rl.draw_ring_lines(p1, radius, radius, 22.5, 22.5+45, 24, WHITE)
@@ -351,12 +377,19 @@ def main():
                 rl.draw_ring_lines(p1, radius, radius, 202.5, 202.5+45, 24, WHITE)
                 rl.draw_ring_lines(p1, radius, radius, 292.5, 292.5+45, 24, WHITE)
 
-                # if velocity points in the same direction as player->planet, then velocity is positive
-                # otherwise (points away), it's negative
-                relative_velocity = copysign(vel_length, rl.vector_3dot_product(vel, pos_diff))
+                distance = rl.vector3_length(pos_diff)
+                # if velocity points in the same direction as player->planet, then velocity is positive otherwise (points away), it's negative
+                # dot product and divide by distance gives forward speed
+                forward_speed = rl.vector_3dot_product(vel, pos_diff) / distance
 
-                text_y = p1.y - radius - 20 if p1.y > radius + 20 else p1.y + radius + 20
-                rl.draw_text("{:.1f} m/s".format(relative_velocity), int(p1.x + radius + 20), int(text_y), 20, WHITE)
+                text_pos = Vector2(radius, -radius)
+                if p1.y-radius < 0:
+                    text_pos.y = radius
+                text_pos = rl.vector2_scale(text_pos, 1 / sqrt(2)) # scale vector to circle of radius `radius`
+                text_pos = rl.vector2_add(text_pos, p1)
+
+                rl.draw_text("{:.1f} m".format(distance), int(text_pos.x), int(text_pos.y), 20, WHITE)
+                rl.draw_text("{:.1f} m/s".format(forward_speed), int(text_pos.x), int(text_pos.y+20), 20, WHITE)
 
         rl.draw_line_v(Vector2(cx, cy - 6), Vector2(cx, cy + 6), WHITE)
         rl.draw_line_v(Vector2(cx - 6, cy), Vector2(cx + 6, cy), WHITE)
@@ -366,6 +399,14 @@ def main():
         # draw target to screen
         rl.begin_drawing()
         rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE);
+
+        if paused:
+            # rl.draw_rectangle(0, 0, rl.get_render_width(), rl.get_render_height(), Color(0, 0, 0, 28))
+            rl.draw_rectangle_rounded(Rectangle(cx - 50, cy - 15, 100, 30), 0.5, 16, BLACK)
+            rl.draw_rectangle_rounded_lines(Rectangle(cx - 50, cy - 15, 100, 30), 0.5, 16, 3, WHITE)
+            pause_width = rl.measure_text("Paused", 20)
+            rl.draw_text("Paused", int(cx - pause_width/2), int(cy-10), 20, WHITE)
+
         rl.end_drawing()
 
 
