@@ -47,6 +47,7 @@ class Planet:
     orbit_angle: float
     orbit_center: Self | None
     color : Color
+    type : int 
     mass: float
     radius: float
     transform: Matrix
@@ -55,6 +56,7 @@ class Planet:
         self.pos = vec3_zero()
         self.vel = vec3_zero()
         self.color = Color(rl.get_random_value(50, 200), rl.get_random_value(50, 200), rl.get_random_value(50, 200),255)
+        self.type = rl.get_random_value(0, 3)
         self.orbit_radius = orbit_radius
         self.orbit_angle = 0
         self.orbit_center = orbit_center
@@ -191,6 +193,13 @@ def main():
 
     sphere = rl.gen_mesh_sphere(1, 24, 24)
 
+    tera_texture = rl.load_texture("tera.png")
+    jupiter_texture = rl.load_texture("jupiter.png")
+    mercure_texture = rl.load_texture("mercury.png")
+    neptune_texture = rl.load_texture("neptune.png")
+    texture_types = [tera_texture, jupiter_texture, mercure_texture, neptune_texture]
+
+
     planet_shader = rl.load_shader("planet_vert.glsl", "planet_frag.glsl")
     u_ambient = rl.get_shader_location(planet_shader, "ambient")
     u_sun_pos = rl.get_shader_location(planet_shader, "sunPos")
@@ -218,6 +227,9 @@ def main():
         Planet(500, planets[0], G, 6, 50),
         Planet(800, planets[0], G, 4, 30),
         Planet(1800, planets[0], G, 12, 100),
+        Planet(700, planets[0], G, 6, 50),
+        Planet(900, planets[0], G, 4, 30),
+        Planet(1100, planets[0], G, 12, 100),
     ])
 
     planets.extend([
@@ -338,6 +350,7 @@ def main():
         for i in range(1, len(planets)):
             planet = planets[i]
             planet_mat.maps.color = planet.color
+            planet_mat.maps[rl.MATERIAL_MAP_DIFFUSE].texture = texture_types[planet.type]
             rl.draw_mesh(sphere, planet_mat, planet.transform)
         rl.end_mode_3d()
 
