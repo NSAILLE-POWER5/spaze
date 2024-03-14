@@ -46,6 +46,7 @@ class Planet:
     orbit_radius: float
     orbit_angle: float
     orbit_center: Self | None
+    color : Color
     mass: float
     radius: float
     transform: Matrix
@@ -53,6 +54,7 @@ class Planet:
     def __init__(self, orbit_radius: float, orbit_center: Self | None, G: float, surface_gravity: float, radius: float):
         self.pos = vec3_zero()
         self.vel = vec3_zero()
+        self.color = Color(rl.get_random_value(50, 200), rl.get_random_value(50, 200), rl.get_random_value(50, 200),255)
         self.orbit_radius = orbit_radius
         self.orbit_angle = 0
         self.orbit_center = orbit_center
@@ -320,7 +322,7 @@ def main():
         rl.begin_texture_mode(bloom_target)
 
         rl.begin_shader_mode(bloom_shader)
-        rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE);
+        rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
         rl.end_shader_mode()
 
         rl.end_texture_mode()
@@ -329,12 +331,13 @@ def main():
         rl.begin_texture_mode(target)
 
         # copy texture back
-        rl.draw_texture_rec(bloom_target.texture, inverted_render_rect, Vector2(0, 0), WHITE);
+        rl.draw_texture_rec(bloom_target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
 
         # draw planets
         rl.begin_mode_3d(player.camera)
         for i in range(1, len(planets)):
             planet = planets[i]
+            planet_mat.maps.color = planet.color
             rl.draw_mesh(sphere, planet_mat, planet.transform)
         rl.end_mode_3d()
 
@@ -398,7 +401,7 @@ def main():
 
         # draw target to screen
         rl.begin_drawing()
-        rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE);
+        rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
 
         if paused:
             # rl.draw_rectangle(0, 0, rl.get_render_width(), rl.get_render_height(), Color(0, 0, 0, 28))
