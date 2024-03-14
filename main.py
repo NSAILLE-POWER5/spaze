@@ -183,7 +183,7 @@ class Player:
 
 
 def main():
-    rl.init_window(800, 800, "Spaze")
+    rl.init_window(1280, 720, "Spaze")
     rl.set_target_fps(60)
     rl.set_window_state(rl.ConfigFlags.FLAG_WINDOW_RESIZABLE)
     rl.set_exit_key(rl.KeyboardKey.KEY_NULL)
@@ -216,6 +216,8 @@ def main():
     sun_u_time = rl.get_shader_location(sun_shader, "time")
 
     sun_texture = rl.load_texture("./sun.png")
+    vaisseau = rl.load_texture("cockpit.png")
+
 
     sun_mat = rl.load_material_default()
     sun_mat.maps[rl.MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = sun_texture
@@ -260,8 +262,8 @@ def main():
 
     bloom_shader = rl.load_shader("", "bloom.glsl")
 
-    bloom_target = rl.load_render_texture(800, 800)
-    target = rl.load_render_texture(800, 800)
+    bloom_target = rl.load_render_texture(1280, 720)
+    target = rl.load_render_texture(1280, 720)
     rl.set_texture_wrap(target.texture, rl.TextureWrap.TEXTURE_WRAP_CLAMP)
 
     selected_planet = -1
@@ -415,6 +417,8 @@ def main():
         # draw target to screen
         rl.begin_drawing()
         rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
+
+        rl.draw_texture(vaisseau, 0, 0, rl.WHITE)
 
         if paused:
             # rl.draw_rectangle(0, 0, rl.get_render_width(), rl.get_render_height(), Color(0, 0, 0, 28))
