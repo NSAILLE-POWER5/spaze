@@ -261,8 +261,8 @@ def main():
 
     bloom_shader = rl.load_shader("", "bloom.glsl")
 
-    bloom_target = rl.load_render_texture(800, 800)
-    target = rl.load_render_texture(800, 800)
+    bloom_target = rl.load_render_texture(1280, 720)
+    target = rl.load_render_texture(1280, 720)
     rl.set_texture_wrap(target.texture, rl.TextureWrap.TEXTURE_WRAP_CLAMP)
 
     selected_planet = -1
