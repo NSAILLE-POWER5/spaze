@@ -218,7 +218,6 @@ def main():
     sun_texture = rl.load_texture("./sun.png")
     vaisseau = rl.load_texture("cockpit.png")
 
-
     sun_mat = rl.load_material_default()
     sun_mat.maps[rl.MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = sun_texture
     sun_mat.shader = sun_shader
@@ -262,8 +261,8 @@ def main():
 
     bloom_shader = rl.load_shader("", "bloom.glsl")
 
-    bloom_target = rl.load_render_texture(1280, 720)
-    target = rl.load_render_texture(1280, 720)
+    bloom_target = rl.load_render_texture(800, 800)
+    target = rl.load_render_texture(800, 800)
     rl.set_texture_wrap(target.texture, rl.TextureWrap.TEXTURE_WRAP_CLAMP)
 
     selected_planet = -1
@@ -418,7 +417,10 @@ def main():
         rl.begin_drawing()
         rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
 
-        rl.draw_texture_pro(vaisseau, Rectangle(0, 0, 1280, 720), Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0, rl.WHITE)
+        rl.draw_texture_pro(vaisseau, Rectangle(0, 0, 1280, 720),
+                            Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
+                            rl.WHITE)
+
 
         if paused:
             # rl.draw_rectangle(0, 0, rl.get_render_width(), rl.get_render_height(), Color(0, 0, 0, 28))
