@@ -418,7 +418,7 @@ def main():
         rl.begin_drawing()
         rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
 
-        rl.draw_texture(vaisseau, 0, 0, rl.WHITE)
+        rl.draw_texture_pro(vaisseau, Rectangle(0, 0, 1280, 720), Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0, rl.WHITE)
 
         if paused:
             # rl.draw_rectangle(0, 0, rl.get_render_width(), rl.get_render_height(), Color(0, 0, 0, 28))
