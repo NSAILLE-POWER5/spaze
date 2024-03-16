@@ -2,8 +2,8 @@
 
 // Input vertex attributes (from vertex shader)
 in vec3 fragPosition;
-in vec2 fragTexCoord;
-//in vec4 fragColor;
+in vec4 fragColor;
+in vec3 unrotatedNormal;
 in vec3 fragNormal;
 
 // Input uniform values
@@ -18,11 +18,19 @@ uniform vec4 ambient;
 uniform vec3 sunPos;
 uniform vec3 viewPos;
 
-void main() {
-    // Texel color fetching from texture sampler
-    vec4 texelColor = texture(texture0, fragTexCoord);
+const float PI = 3.1415926535;
 
-    vec3 normal = normalize(fragNormal);
+void main() {
+    vec3 normal = normalize(unrotatedNormal);
+
+	// Calculate UV coordinates from normal
+	float u = atan(normal.z, normal.x)/(2*PI) + 0.5;
+	float v = asin(normal.y)/PI + 0.5;
+
+    // Texel color fetching from texture sampler
+    vec4 texelColor = texture(texture0, vec2(u, v)) * fragColor;
+
+    normal = normalize(fragNormal);
     vec3 viewD = normalize(viewPos - fragPosition);
 	vec3 sunDir = normalize(sunPos - fragPosition);
 

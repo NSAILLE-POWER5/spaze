@@ -3,8 +3,10 @@ from typing import Self, TypeAlias
 from math import sqrt, cos, sin, tan, pi, radians, copysign, log1p
 
 import pyray as rl
-from pyray import Camera3D, Color, KeyboardKey, Matrix, Rectangle, Vector2, Vector3, Vector4
+from pyray import Camera3D, Color, KeyboardKey, MaterialMapIndex, Matrix, Rectangle, Vector2, Vector3, Vector4
 from raylib import ffi
+
+from icosphere import gen_icosphere
 
 BLACK = Color(0, 0, 0, 255)
 RAYWHITE = Color(245, 245, 245, 255)
@@ -191,7 +193,7 @@ def main():
     G = 5
     dt = 1 / 60
 
-    sphere = rl.gen_mesh_sphere(1, 24, 24)
+    sphere = gen_icosphere(4).create_mesh()
 
     tera_texture = rl.load_texture("tera.png")
     jupiter_texture = rl.load_texture("jupiter.png")
@@ -250,6 +252,8 @@ def main():
         rl.quaternion_from_euler(0, pi, 0),
         rl.quaternion_from_euler(0, pi, 0)
     )
+
+    ico = gen_icosphere(3).create_mesh()
 
     # initialize positions and transforms since the game is paused by default
     # and randomize orbit angles
@@ -351,7 +355,7 @@ def main():
         for i in range(1, len(planets)):
             planet = planets[i]
             planet_mat.maps.color = planet.color
-            planet_mat.maps[rl.MATERIAL_MAP_DIFFUSE].texture = texture_types[planet.type]
+            planet_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = texture_types[planet.type]
             rl.draw_mesh(sphere, planet_mat, planet.transform)
         rl.end_mode_3d()
 
@@ -419,7 +423,7 @@ def main():
 
         rl.draw_texture_pro(vaisseau, Rectangle(0, 0, 1280, 720),
                             Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
-                            rl.WHITE)
+                            WHITE)
 
 
         if paused:
