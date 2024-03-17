@@ -5,9 +5,9 @@ from pyray import Color, MaterialMapIndex, Rectangle, ShaderLocationIndex, Vecto
 from raylib import ffi
 
 from icosphere import gen_icosphere
-from utils import get_projected_sphere_radius
+from utils import get_projected_sphere_radius, randf
 from player import Player
-from system import Planet
+from system import Planet, System
 
 BLACK = Color(0, 0, 0, 255)
 RAYWHITE = Color(245, 245, 245, 255)
@@ -56,23 +56,25 @@ def main():
     sun_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].color = Color(255, 210, 0, 255)
     sun_mat.shader = sun_shader
 
-    planets = [ Planet(0, None, G, 30, 200 ) ]
+    system = System(Planet(0, None, G, 30, 200 ))
 
-    planets.extend([
-        Planet(500, planets[0], G, 6, 50),
-        Planet(800, planets[0], G, 4, 30),
-        Planet(1800, planets[0], G, 12, 100),
-        Planet(700, planets[0], G, 6, 50),
-        Planet(900, planets[0], G, 4, 30),
-        Planet(1100, planets[0], G, 12, 100),
-    ])
+    system.add(Planet(500, system.bodies[0], G, 6, 50))
+    system.add(Planet(800, system.bodies[0], G, 4, 30))
+    system.add(Planet(1800, system.bodies[0], G, 12, 100))
+    system.add(Planet(700, system.bodies[0], G, 6, 50))
+    system.add(Planet(900, system.bodies[0], G, 4, 30))
+    system.add(Planet(1100, system.bodies[0], G, 12, 100))
 
-    planets.extend([
-        Planet(190, planets[3], G, 2, 15)
-    ])
+    system.add(Planet(190, system.bodies[3], G, 2, 15))
+
+    # initialize positions and transforms since the game is paused by default
+    # and randomize orbit angles
+    for planet in system.planets():
+        planet.orbit_angle = randf() * 2 * pi
+    system.update(G, dt)
 
     player = Player(
-        Vector3(0, 0, -900),
+        Vector3(0, 0, -1300),
         Vector3(5, 0, 0),
         rl.Camera3D(
             Vector3(0, 0, -150),
@@ -86,10 +88,6 @@ def main():
     )
 
     sky_model = rl.gen_mesh_sphere(1, 4, 4)
-
-    def randf() -> float:
-        """Returns value between 0 (inclusive) and 1 (exclusive)"""
-        return rl.get_random_value(0, 999999)/1000000
 
     # allocate an array of 1000 matrices
     sky_transforms = ffi.cast("Matrix *", rl.mem_alloc(1000*ffi.sizeof("Matrix")))
@@ -105,12 +103,6 @@ def main():
     sky_mat = rl.load_material_default()
     sky_mat.shader = sky_shader
 
-    # initialize positions and transforms since the game is paused by default
-    # and randomize orbit angles
-    for planet in planets:
-        planet.orbit_angle = rl.get_random_value(0, 1000)/1000 * 2 * pi
-        planet.orbit(G, dt)
-        planet.compute_transform()
     player.update(dt)
 
     bloom_shader = rl.load_shader("", "shaders/bloom.glsl")
@@ -137,16 +129,13 @@ def main():
         cy = rl.get_render_height()/2
 
         if not paused:
-            for planet in planets:
-                planet.orbit(G, dt)
-                planet.compute_transform()
-
-            player.apply_gravity(G, dt, planets)
+            system.update(G, dt)
+            player.apply_gravity(G, dt, system.bodies)
             player.update(dt)
 
             if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
                 ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
-                for i, planet in enumerate(planets):
+                for i, planet in enumerate(system.bodies):
                     # skip if we're looking away from the planet
                     if rl.vector_3dot_product(ray.direction, rl.vector3_subtract(planet.pos, player.pos)) < 0:
                         continue
@@ -161,16 +150,13 @@ def main():
                 rl.enable_cursor()
                 paused = True
         else:
-            for planet in planets:
-                planet.compute_transform()
-
             if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
                 rl.disable_cursor()
                 paused = False
 
 
         rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
-        rl.set_shader_value(planet_shader, u_sun_pos, planets[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
+        rl.set_shader_value(planet_shader, u_sun_pos, system.bodies[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
 
         rl.set_shader_value(sun_shader, sun_u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
         rl.set_shader_value(sun_shader, sun_u_time, rl.get_time(), rl.ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
@@ -185,10 +171,9 @@ def main():
         rl.draw_mesh_instanced(sky_model, sky_mat, sky_transforms, 1000)
         rl.rl_enable_depth_mask()
 
-        rl.draw_mesh(sphere, sun_mat, planets[0].transform)
+        rl.draw_mesh(sphere, sun_mat, system.bodies[0].transform)
 
-        for i in range(1, len(planets)):
-            planet = planets[i]
+        for planet in system.planets():
             planet_mat.maps.color = planet.color
             planet_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = texture_types[planet.type]
             rl.draw_mesh(sphere, planet_mat, planet.transform)
@@ -203,7 +188,7 @@ def main():
 
         if selected_planet != -1:
             # show the relative velocity between the player and the selected planet
-            planet = planets[selected_planet]
+            planet = system.bodies[selected_planet]
             pos_diff = rl.vector3_subtract(planet.pos, player.pos)
             projected_radius = get_projected_sphere_radius(player.camera, rl.get_render_height(), planet.pos, planet.radius)
             # don't render if the planet is behind us

@@ -1,5 +1,6 @@
-from typing import Self
+from typing import Iterable, Self
 from math import sqrt, cos, sin, pi
+import itertools
 
 import pyray as rl
 from pyray import Color, Matrix, Vector3
@@ -44,7 +45,7 @@ class Planet:
         #
         # angular_speed = sqrt(G * m1 / radius^3)
 
-        angular_speed = sqrt(G * self.orbit_center.mass / (self.orbit_radius**3))
+        angular_speed = sqrt(G * (self.orbit_center.mass + self.mass) / (self.orbit_radius**3))
         self.orbit_angle += angular_speed*dt
         if self.orbit_angle > 2*pi:
             self.orbit_angle -= 2*pi
@@ -68,3 +69,26 @@ class Planet:
         self.transform = rl.matrix_multiply(self.transform, rl.matrix_rotate_xyz(Vector3(pi/2, 0.0, rl.get_time()/10.0)))
         self.transform = rl.matrix_multiply(self.transform, rl.matrix_translate(pos.x, pos.y, pos.z))
 
+class System:
+    def __init__(self, sun: Planet):
+        self.bodies = [sun]
+    
+    def add(self, planet: Planet):
+        """
+        Adds a new planet to the system.
+        Note that planets should be added "in order of orbit",
+        that means, planets should be added first, then moons, then moons of moons, etc...
+        """
+        self.bodies.append(planet)
+
+    def planets(self) -> Iterable[Planet]:
+        """
+        Returns an iterator over only the system's planets (without the sun)
+        """
+        return itertools.islice(self.bodies, 1, None)
+
+    def update(self, G: float, dt: float):
+        """Updates the solar system to its next position"""
+        for body in self.bodies:
+            body.orbit(G, dt)
+            body.compute_transform()

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Iterable
 
 import pyray as rl
 from pyray import Vector3, Camera3D, KeyboardKey
@@ -65,20 +66,13 @@ class Player:
         self.camera.position = self.pos
         self.camera.target = rl.vector3_add(self.camera.position, forward)
 
-    def apply_gravity(self, G: float, dt: float, planets: list[Planet]):
-        # closest, closest_dist = -1, inf
-
+    def apply_gravity(self, G: float, dt: float, bodies: Iterable[Planet]):
         acc = vec3_zero()
-        for i in range(len(planets)):
-            p = planets[i]
-
+        for p in bodies:
             dir = rl.vector3_subtract(p.pos, self.pos)
             distance = rl.vector3_length(dir)
             if distance < 0.05:
                 continue # avoid numerical explosion
-            # if distance < closest_dist:
-            #     closest = i
-            #     closest_dist = distance
 
             normalized = rl.vector3_scale(dir, 1.0 / distance) # normalize `dir`
             acceleration = G * p.mass / (distance*distance)

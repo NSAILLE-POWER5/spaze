@@ -1,6 +1,6 @@
 from math import tan, radians, sqrt
 from typing import TypeAlias
-from pyray import Vector3, Camera3D, Vector4, vector_3distance
+from pyray import Vector3, Camera3D, Vector4, vector_3distance, get_random_value
 
 Quat: TypeAlias = Vector4
 
@@ -28,3 +28,7 @@ def get_projected_sphere_radius(cam: Camera3D, screen_height: float, center: Vec
     fov = radians(cam.fovy) / 2
     pr = cot(fov) * radius / sqrt(d*d - radius*radius)
     return pr * screen_height / 2
+
+def randf() -> float:
+    """Returns value between 0 (inclusive) and 1 (exclusive)"""
+    return get_random_value(0, 999999)/1000000
