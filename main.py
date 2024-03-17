@@ -92,7 +92,10 @@ def main():
     # allocate an array of 1000 matrices
     sky_transforms = ffi.cast("Matrix *", rl.mem_alloc(1000*ffi.sizeof("Matrix")))
     for i in range(1000):
-        v = Vector3(randf()*2 - 1, randf()*2 - 1, randf()*2 - 1)
+        # bundle points closer to the horizon line
+        y = (randf()*2-1)*(randf()*2-1)*(randf()*2-1)
+
+        v = Vector3(randf()*2 - 1, y, randf()*2 - 1)
         v = rl.vector3_scale(rl.vector3_normalize(v), 500)
         scale = randf() + 0.5
         sky_transforms[i] = rl.matrix_multiply(rl.matrix_scale(scale, scale, scale), rl.matrix_translate(v.x, v.y, v.z))
