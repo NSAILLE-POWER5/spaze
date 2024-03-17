@@ -366,6 +366,10 @@ def main():
         # draw UI
         rl.draw_fps(10, 10)
 
+        rl.draw_texture_pro(vaisseau, Rectangle(0, 0, 1280, 720),
+                            Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
+                            WHITE)
+
         if selected_planet != -1:
             # show the relative velocity between the player and the selected planet
             planet = planets[selected_planet]
@@ -424,10 +428,6 @@ def main():
         # draw target to screen
         rl.begin_drawing()
         rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
-
-        rl.draw_texture_pro(vaisseau, Rectangle(0, 0, 1280, 720),
-                            Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
-                            WHITE)
 
 
         if paused:
