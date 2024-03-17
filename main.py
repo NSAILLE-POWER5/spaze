@@ -191,8 +191,8 @@ def main():
 
         for planet in system.planets():
             planet_mat.maps.color = planet.color
-            planet_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = texture_types[planet.type]
-            rl.draw_mesh(sphere, planet_mat, planet.transform)
+            planet_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = planet.texture
+            rl.draw_mesh(sphere, planet_mat, planet.transform) #ICI
         rl.end_mode_3d()
 
         # draw UI
