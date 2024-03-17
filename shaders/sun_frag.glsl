@@ -22,8 +22,8 @@ void main() {
 	vec3 normal = normalize(unrotatedNormal);
 
 	// Calculate UV coordinates from normal
-	float u = atan(normal.z, normal.x)/(2*PI) + 0.5;
-	float v = asin(normal.y)/PI + 0.5;
+	float u = atan(normal.x, normal.y)/(2*PI) + 0.5;
+	float v = asin(normal.z)/PI + 0.5;
 
     // Texel color fetching from texture sampler
     vec4 texelColor = texture(texture0, vec2(u, v))*fragColor;
