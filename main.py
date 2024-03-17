@@ -411,12 +411,7 @@ def main():
                 # dot product and divide by distance gives forward speed
                 forward_speed = rl.vector_3dot_product(vel, pos_diff) / distance
 
-                text_pos = Vector2(radius, -radius)
-                if p1.y-radius < 0:
-                    text_pos.y = radius
-                text_pos = rl.vector2_scale(text_pos, 1 / sqrt(2)) # scale vector to circle of radius `radius`
-                text_pos = rl.vector2_add(text_pos, p1)
-
+                text_pos = rl.vector2_add(p1, Vector2(radius, -10))
                 rl.draw_text("{:.1f} m".format(distance), int(text_pos.x), int(text_pos.y), 20, WHITE)
                 rl.draw_text("{:.1f} m/s".format(forward_speed), int(text_pos.x), int(text_pos.y+20), 20, WHITE)
 
