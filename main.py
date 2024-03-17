@@ -1,188 +1,19 @@
-from dataclasses import dataclass
-from typing import Self, TypeAlias
-from math import sqrt, cos, sin, tan, pi, radians, copysign, log1p
+from math import pi, log1p
 
 import pyray as rl
-from pyray import Camera3D, Color, KeyboardKey, MaterialMapIndex, Matrix, Rectangle, ShaderLocationIndex, Vector2, Vector3, Vector4
+from pyray import Color, MaterialMapIndex, Rectangle, ShaderLocationIndex, Vector2, Vector3, Vector4
 from raylib import ffi
 
-from icosphere import gen_icosahedron, gen_icosphere
+from icosphere import gen_icosphere
+from utils import get_projected_sphere_radius
+from player import Player
+from system import Planet
 
 BLACK = Color(0, 0, 0, 255)
 RAYWHITE = Color(245, 245, 245, 255)
 WHITE = Color(255, 255, 255, 255)
 BLANK = Color(0, 0, 0, 0)
 RED = Color(255, 0, 0, 255)
-
-Quat: TypeAlias = Vector4
-
-def vec3_zero() -> Vector3:
-    return Vector3(0, 0, 0)
-
-def print_vec3(v: Vector3):
-    print(v.x, v.y, v.z)
-
-def cot(x: float) -> float:
-    """Returns the cotangent of `x`"""
-    return 1 / tan(x)
-
-def get_projected_sphere_radius(cam: Camera3D, screen_height: float, center: Vector3, radius: float) -> float:
-    """
-    Get the screen space radius a sphere will be drawn as in pixels.
-    Returns 0 if the camera is inside the sphere.
-    """
-    # https://stackoverflow.com/a/21649403
-
-    d = rl.vector_3distance(cam.position, center)
-    if d < radius:
-        return 0
-    # convert camera fov to radians
-    fov = radians(cam.fovy) / 2
-    pr = cot(fov) * radius / sqrt(d*d - radius*radius)
-    return pr * screen_height / 2
-
-@dataclass
-class Planet:
-    pos: Vector3
-    vel: Vector3 # instantaneous velocity
-    orbit_radius: float
-    orbit_angle: float
-    orbit_center: Self | None
-    color : Color
-    type : int 
-    mass: float
-    radius: float
-    transform: Matrix
-
-    def __init__(self, orbit_radius: float, orbit_center: Self | None, G: float, surface_gravity: float, radius: float):
-        self.pos = vec3_zero()
-        self.vel = vec3_zero()
-        self.color = Color(rl.get_random_value(50, 200), rl.get_random_value(50, 200), rl.get_random_value(50, 200),255)
-        self.type = rl.get_random_value(0, 3)
-        self.orbit_radius = orbit_radius
-        self.orbit_angle = 0
-        self.orbit_center = orbit_center
-        self.mass = radius*radius*surface_gravity / G # set mass based on surface gravity
-        self.radius = radius
-        self.transform = rl.matrix_identity()
-
-    def orbit(self, G: float, dt: float):
-        """Simulate perfectly circular orbit with keplerian mechanics"""
-        if self.orbit_center == None:
-            return
-
-        # For a perfectly circular orbit: (https://en.wikipedia.org/wiki/Circular_orbit)
-        # acceleration = angular_speed^2 * radius
-        # angular_speed = sqrt(acceleration / radius)
-
-        # acceleration = G * m1 * m2 / radius^2 / m2
-        #              = G * m1 / radius^2
-        #
-        # angular_speed = sqrt(G * m1 / radius^3)
-
-        angular_speed = sqrt(G * self.orbit_center.mass / (self.orbit_radius**3))
-        self.orbit_angle += angular_speed*dt
-        if self.orbit_angle > 2*pi:
-            self.orbit_angle -= 2*pi
-        self.pos = Vector3(cos(self.orbit_angle)*self.orbit_radius, 0, sin(self.orbit_angle)*self.orbit_radius)
-        self.pos = rl.vector3_add(self.pos, self.orbit_center.pos)
-
-        # get instantaneous velocity:
-        # velocity^2 / r = angular_speed^2 * r
-        # velocity = sqrt(angular_speed^2 * r^2)
-        # velocty = angular_speed * r
-        velocity = angular_speed * self.orbit_radius
-
-        self.vel = rl.vector3_scale(Vector3(-sin(self.orbit_angle), 0, cos(self.orbit_angle)), velocity)
-        # add their parent's velocity
-        self.vel = rl.vector3_add(self.vel, self.orbit_center.vel)
-
-    def compute_transform(self):
-        radius = self.radius
-        pos = self.pos
-        self.transform = rl.matrix_scale(radius, radius, radius)
-        self.transform = rl.matrix_multiply(self.transform, rl.matrix_rotate_xyz(Vector3(pi/2, 0.0, rl.get_time()/10.0)))
-        self.transform = rl.matrix_multiply(self.transform, rl.matrix_translate(pos.x, pos.y, pos.z))
-
-@dataclass
-class Player:
-    pos: Vector3
-    vel: Vector3
-    camera: Camera3D
-    rotation: Quat
-    target_rotation: Quat
-
-    def update(self, dt: float):
-        """Update camera view angle and speed with inputs, and integrate position over speed"""
-        mouse_speed = 0.005
-        roll_speed = 0.01
-        move_speed = 0.2
-
-        # change view angles
-        rot_matrix = rl.quaternion_to_matrix(self.rotation)
-
-        forward = rl.vector3_transform(Vector3(0, 0, -1), rot_matrix)
-        up = rl.vector3_transform(Vector3(0, 1, 0), rot_matrix)
-        right = rl.vector3_transform(Vector3(1, 0, 0), rot_matrix)
-
-        d = rl.get_mouse_delta()
-        yaw = rl.quaternion_from_axis_angle(up, -d.x*mouse_speed)
-        pitch = rl.quaternion_from_axis_angle(right, -d.y*mouse_speed)
-        roll = rl.quaternion_from_axis_angle(forward, roll_speed*(float(rl.is_key_down(KeyboardKey.KEY_E))-float(rl.is_key_down(KeyboardKey.KEY_Q))))
-
-        rot = rl.quaternion_multiply(yaw, pitch)
-        rot = rl.quaternion_multiply(rot, roll)
-        self.target_rotation = rl.quaternion_multiply(rot, self.target_rotation)
-        self.rotation = rl.quaternion_slerp(self.rotation, self.target_rotation, 0.3)
-
-        rot_matrix = rl.quaternion_to_matrix(self.rotation)
-        forward = rl.vector3_transform(Vector3(0, 0, -1), rot_matrix)
-        up = rl.vector3_transform(Vector3(0, 1, 0), rot_matrix)
-        right = rl.vector3_transform(Vector3(1, 0, 0), rot_matrix)
-
-        # apply movement
-        acc = vec3_zero()
-        if rl.is_key_down(KeyboardKey.KEY_W):
-            acc = rl.vector3_add(acc, rl.vector3_scale(forward, move_speed))
-        if rl.is_key_down(KeyboardKey.KEY_S):
-            acc = rl.vector3_add(acc, rl.vector3_scale(forward, -move_speed))
-        if rl.is_key_down(KeyboardKey.KEY_D):
-            acc = rl.vector3_add(acc, rl.vector3_scale(right, move_speed))
-        if rl.is_key_down(KeyboardKey.KEY_A):
-            acc = rl.vector3_add(acc, rl.vector3_scale(right, -move_speed))
-        if rl.is_key_down(KeyboardKey.KEY_SPACE):
-            acc = rl.vector3_add(acc, rl.vector3_scale(up, move_speed))
-        if rl.is_key_down(KeyboardKey.KEY_LEFT_CONTROL):
-            acc = rl.vector3_add(acc, rl.vector3_scale(up, -move_speed))
-
-        # update values
-        self.vel = rl.vector3_add(self.vel, acc) # don't multiply by dt (impulse instead of force)
-        self.pos = rl.vector3_add(self.pos, rl.vector3_scale(self.vel, dt))
-
-        self.camera.up = up
-        self.camera.position = self.pos
-        self.camera.target = rl.vector3_add(self.camera.position, forward)
-
-    def apply_gravity(self, G: float, dt: float, planets: list[Planet]):
-        # closest, closest_dist = -1, inf
-
-        acc = vec3_zero()
-        for i in range(len(planets)):
-            p = planets[i]
-
-            dir = rl.vector3_subtract(p.pos, self.pos)
-            distance = rl.vector3_length(dir)
-            if distance < 0.05:
-                continue # avoid numerical explosion
-            # if distance < closest_dist:
-            #     closest = i
-            #     closest_dist = distance
-
-            normalized = rl.vector3_scale(dir, 1.0 / distance) # normalize `dir`
-            acceleration = G * p.mass / (distance*distance)
-            acc = rl.vector3_add(acc, rl.vector3_scale(normalized, acceleration))
-        self.vel = rl.vector3_add(self.vel, rl.vector3_scale(acc, dt))
-
 
 def main():
     rl.init_window(1280, 720, "Spaze")
@@ -392,23 +223,28 @@ def main():
                 p1 = rl.get_world_to_screen(p1_world, player.camera)
                 p2 = rl.get_world_to_screen(rl.vector3_add(p1_world, scaled_vel), player.camera)
 
-                # Draw thicker line under first (outline)
-
+                # Draw thicker lines under first (outline)
                 rl.draw_circle_v(p1, 3, BLACK)
                 rl.draw_line_ex(p1, Vector2(p2.x, p1.y), 3, BLACK)
                 rl.draw_line_ex(p1, Vector2(p1.x, p2.y), 3, BLACK)
+
+                # Draw lines above
                 rl.draw_line_v(p1, Vector2(p2.x, p1.y), WHITE)
                 rl.draw_line_v(p1, Vector2(p1.x, p2.y), WHITE)
 
+                # Draw the four corners
                 radius = projected_radius + 20
                 rl.draw_ring_lines(p1, radius, radius, 22.5, 22.5+45, 24, WHITE)
                 rl.draw_ring_lines(p1, radius, radius, 112.5, 112.5+45, 24, WHITE)
                 rl.draw_ring_lines(p1, radius, radius, 202.5, 202.5+45, 24, WHITE)
                 rl.draw_ring_lines(p1, radius, radius, 292.5, 292.5+45, 24, WHITE)
 
+                # Draw the text
+
+                # if velocity points in the same direction as player->planet then velocity is positive, otherwise (points away), it's negative
+                # forward speed is the orthogonal projection of velocity on position
+                # which is the dot product divided by distance
                 distance = rl.vector3_length(pos_diff)
-                # if velocity points in the same direction as player->planet, then velocity is positive otherwise (points away), it's negative
-                # dot product and divide by distance gives forward speed
                 forward_speed = rl.vector_3dot_product(vel, pos_diff) / distance
 
                 text_pos = rl.vector2_add(p1, Vector2(radius, -10))
