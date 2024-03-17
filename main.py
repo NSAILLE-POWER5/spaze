@@ -3,10 +3,10 @@ from typing import Self, TypeAlias
 from math import sqrt, cos, sin, tan, pi, radians, copysign, log1p
 
 import pyray as rl
-from pyray import Camera3D, Color, KeyboardKey, MaterialMapIndex, Matrix, Rectangle, Vector2, Vector3, Vector4
+from pyray import Camera3D, Color, KeyboardKey, MaterialMapIndex, Matrix, Rectangle, ShaderLocationIndex, Vector2, Vector3, Vector4
 from raylib import ffi
 
-from icosphere import gen_icosphere
+from icosphere import gen_icosahedron, gen_icosphere
 
 BLACK = Color(0, 0, 0, 255)
 RAYWHITE = Color(245, 245, 245, 255)
@@ -221,7 +221,8 @@ def main():
     vaisseau = rl.load_texture("cockpit.png")
 
     sun_mat = rl.load_material_default()
-    sun_mat.maps[rl.MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = sun_texture
+    sun_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = sun_texture
+    sun_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].color = Color(255, 210, 0, 255)
     sun_mat.shader = sun_shader
 
     planets = [ Planet(0, None, G, 30, 200 ) ]
@@ -253,7 +254,25 @@ def main():
         rl.quaternion_from_euler(0, pi, 0)
     )
 
-    ico = gen_icosphere(3).create_mesh()
+    sky_model = rl.gen_mesh_sphere(1, 4, 4)
+
+    def randf() -> float:
+        """Returns value between 0 (inclusive) and 1 (exclusive)"""
+        return rl.get_random_value(0, 999999)/1000000
+
+    # allocate an array of 1000 matrices
+    sky_transforms = ffi.cast("Matrix *", rl.mem_alloc(1000*ffi.sizeof("Matrix")))
+    for i in range(1000):
+        v = Vector3(randf()*2 - 1, randf()*2 - 1, randf()*2 - 1)
+        v = rl.vector3_scale(rl.vector3_normalize(v), 500)
+        scale = randf() + 0.5
+        sky_transforms[i] = rl.matrix_multiply(rl.matrix_scale(scale, scale, scale), rl.matrix_translate(v.x, v.y, v.z))
+
+    sky_shader = rl.load_shader("sky_vert.glsl", "sky_frag.glsl")
+    sky_shader.locs[ShaderLocationIndex.SHADER_LOC_MATRIX_MODEL] = rl.get_shader_location_attrib(sky_shader, "matModel")
+
+    sky_mat = rl.load_material_default()
+    sky_mat.shader = sky_shader
 
     # initialize positions and transforms since the game is paused by default
     # and randomize orbit angles
@@ -325,33 +344,18 @@ def main():
         rl.set_shader_value(sun_shader, sun_u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
         rl.set_shader_value(sun_shader, sun_u_time, rl.get_time(), rl.ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
 
-        # render sun first to the target texture
+
         rl.begin_texture_mode(target)
         rl.clear_background(BLACK)
 
         rl.begin_mode_3d(player.camera)
+
+        rl.rl_disable_depth_mask()
+        rl.draw_mesh_instanced(sky_model, sky_mat, sky_transforms, 1000)
+        rl.rl_enable_depth_mask()
+
         rl.draw_mesh(sphere, sun_mat, planets[0].transform)
-        rl.end_mode_3d()
 
-        rl.end_texture_mode()
-
-        # apply bloom effect to the sun
-        rl.begin_texture_mode(bloom_target)
-
-        rl.begin_shader_mode(bloom_shader)
-        rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
-        rl.end_shader_mode()
-
-        rl.end_texture_mode()
-
-        # start normal rendering
-        rl.begin_texture_mode(target)
-
-        # copy texture back
-        rl.draw_texture_rec(bloom_target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
-
-        # draw planets
-        rl.begin_mode_3d(player.camera)
         for i in range(1, len(planets)):
             planet = planets[i]
             planet_mat.maps.color = planet.color
