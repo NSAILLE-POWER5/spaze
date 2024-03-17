@@ -195,14 +195,14 @@ def main():
 
     sphere = gen_icosphere(4).create_mesh()
 
-    tera_texture = rl.load_texture("tera.png")
-    jupiter_texture = rl.load_texture("jupiter.png")
-    mercure_texture = rl.load_texture("mercury.png")
-    neptune_texture = rl.load_texture("neptune.png")
+    tera_texture = rl.load_texture("assets/tera.png")
+    jupiter_texture = rl.load_texture("assets/jupiter.png")
+    mercure_texture = rl.load_texture("assets/mercury.png")
+    neptune_texture = rl.load_texture("assets/neptune.png")
     texture_types = [tera_texture, jupiter_texture, mercure_texture, neptune_texture]
 
 
-    planet_shader = rl.load_shader("planet_vert.glsl", "planet_frag.glsl")
+    planet_shader = rl.load_shader("shaders/planet_vert.glsl", "shaders/planet_frag.glsl")
     u_ambient = rl.get_shader_location(planet_shader, "ambient")
     u_sun_pos = rl.get_shader_location(planet_shader, "sunPos")
     u_view_pos = rl.get_shader_location(planet_shader, "viewPos")
@@ -213,12 +213,12 @@ def main():
     planet_mat = rl.load_material_default()
     planet_mat.shader = planet_shader
 
-    sun_shader = rl.load_shader("sun_vert.glsl", "sun_frag.glsl")
+    sun_shader = rl.load_shader("shaders/sun_vert.glsl", "shaders/sun_frag.glsl")
     sun_u_view_pos = rl.get_shader_location(sun_shader, "viewPos")
     sun_u_time = rl.get_shader_location(sun_shader, "time")
 
-    sun_texture = rl.load_texture("./sun.png")
-    vaisseau = rl.load_texture("cockpit.png")
+    sun_texture = rl.load_texture("assets/sun.png")
+    vaisseau = rl.load_texture("assets/cockpit.png")
 
     sun_mat = rl.load_material_default()
     sun_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = sun_texture
@@ -268,7 +268,7 @@ def main():
         scale = randf() + 0.5
         sky_transforms[i] = rl.matrix_multiply(rl.matrix_scale(scale, scale, scale), rl.matrix_translate(v.x, v.y, v.z))
 
-    sky_shader = rl.load_shader("sky_vert.glsl", "sky_frag.glsl")
+    sky_shader = rl.load_shader("shaders/sky_vert.glsl", "shaders/sky_frag.glsl")
     sky_shader.locs[ShaderLocationIndex.SHADER_LOC_MATRIX_MODEL] = rl.get_shader_location_attrib(sky_shader, "matModel")
 
     sky_mat = rl.load_material_default()
@@ -282,7 +282,7 @@ def main():
         planet.compute_transform()
     player.update(dt)
 
-    bloom_shader = rl.load_shader("", "bloom.glsl")
+    bloom_shader = rl.load_shader("", "shaders/bloom.glsl")
 
     bloom_target = rl.load_render_texture(1280, 720)
     target = rl.load_render_texture(1280, 720)
