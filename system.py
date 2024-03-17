@@ -1,5 +1,7 @@
 from typing import Iterable, Self
 from math import sqrt, cos, sin, pi
+from perlin_noise import gen_perlin, gen_texture
+from random import randint
 import itertools
 
 import pyray as rl
@@ -30,6 +32,9 @@ class Planet:
         self.mass = radius*radius*surface_gravity / G # set mass based on surface gravity
         self.radius = radius
         self.transform = rl.matrix_identity()
+        self.seed = randint(0, 100000)
+        self.perlin = gen_perlin(200, self.seed)
+        self.texture = rl.load_texture(gen_texture(self.perlin))
 
     def orbit(self, G: float, dt: float):
         """Simulate perfectly circular orbit with keplerian mechanics"""
