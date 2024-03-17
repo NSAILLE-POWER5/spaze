@@ -106,8 +106,6 @@ def main():
     sky_mat = rl.load_material_default()
     sky_mat.shader = sky_shader
 
-    player.update(dt)
-
     bloom_shader = rl.load_shader("", "shaders/bloom.glsl")
 
     bloom_target = rl.load_render_texture(1280, 720)
@@ -117,6 +115,16 @@ def main():
     selected_planet = -1
 
     paused = True
+
+    map = False
+
+    isometric_cam = rl.Camera3D(
+        Vector3(1200, 1200, 1200),
+        Vector3(0, 0, 0),
+        Vector3(0, 1, 0),
+        1200*2,
+        rl.CameraProjection.CAMERA_ORTHOGRAPHIC
+    )
 
     while not rl.window_should_close():
         inverted_render_rect = Rectangle(0, 0, rl.get_render_width(), -rl.get_render_height())
@@ -131,10 +139,16 @@ def main():
         cx = rl.get_render_width()/2
         cy = rl.get_render_height()/2
 
+        if rl.is_key_pressed(rl.KeyboardKey.KEY_SEMICOLON):
+            map = not map
+
         if not paused:
             system.update(G, dt)
             player.apply_gravity(G, dt, system.bodies)
-            player.update(dt)
+            if not map:
+                player.handle_mouse_input(dt)
+            player.handle_keyboard_input()
+            player.integrate(dt)
 
             if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
                 ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
@@ -156,7 +170,6 @@ def main():
             if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
                 rl.disable_cursor()
                 paused = False
-
 
         rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
         rl.set_shader_value(planet_shader, u_sun_pos, system.bodies[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
@@ -246,8 +259,81 @@ def main():
 
         # draw target to screen
         rl.begin_drawing()
-        rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
 
+        if not map:
+            rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
+        else:
+            rl.update_camera(isometric_cam, rl.CameraMode.CAMERA_THIRD_PERSON)
+
+            rl.begin_mode_3d(isometric_cam)
+
+            rl.clear_background(BLACK)
+            for body in system.bodies:
+                if body.orbit_center != None:
+                    rl.draw_circle_3d(body.orbit_center.pos, body.orbit_radius, Vector3(1, 0, 0), 90, rl.fade(body.color, 0.5))
+
+                rl.draw_sphere(body.pos, body.radius, body.color)
+
+            system_copy = System(system.bodies[0])
+
+            body_indices = { body: i for i, body in enumerate(system.bodies) }
+            for planet in system.planets():
+                p = Planet(
+                    planet.orbit_radius,
+                    None if planet.orbit_center == None else system_copy.bodies[body_indices[planet.orbit_center]],
+                    G,
+                    planet.mass * G / planet.radius / planet.radius,
+                    planet.radius
+                )
+
+                p.orbit_angle = planet.orbit_angle
+                p.pos = planet.pos
+                p.color = planet.color
+                p.type = planet.type
+                p.vel = planet.vel
+
+                system_copy.add(p)
+
+            player_copy = Player(
+                player.pos,
+                player.vel,
+                player.camera,
+                player.rotation,
+                player.target_rotation
+            )
+
+            simul_dt = 1/2
+
+            trace = [player.pos]
+
+            # simulate 50 seconds in advance
+            for _ in range(100):
+                system_copy.update(G, simul_dt)
+                player_copy.apply_gravity(G, simul_dt, system_copy.bodies)
+                player_copy.integrate(simul_dt)
+
+                # check for collision
+                stop = False
+                for body in system_copy.bodies:
+                    if rl.vector_3distance_sqr(player_copy.pos, body.pos) < body.radius*body.radius:
+                        stop = True
+
+                trace.append(player_copy.pos)
+                if stop:
+                    break
+
+            for i in range(1, len(trace)):
+                prev = trace[i-1]
+                new = trace[i]
+                rl.draw_line_3d(prev, new, WHITE)
+
+            if len(trace) < 101:
+                l = len(trace)-1
+                rl.draw_sphere(trace[l], 10, RED)
+
+            rl.draw_cube(rl.vector3_add(player.pos, Vector3(5, 5, 5)), 10, 10, 10, WHITE)
+
+            rl.end_mode_3d()
 
         if paused:
             # rl.draw_rectangle(0, 0, rl.get_render_width(), rl.get_render_height(), Color(0, 0, 0, 28))
