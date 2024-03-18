@@ -1,6 +1,5 @@
 from typing import Iterable, Self
 from math import sqrt, cos, sin, pi
-from perlin_noise import gen_perlin, gen_texture
 from random import randint
 import itertools
 
@@ -33,8 +32,8 @@ class Planet:
         self.radius = radius
         self.transform = rl.matrix_identity()
         self.seed = randint(0, 100000)
-        self.perlin = gen_perlin(200, self.seed)
-        self.texture = rl.load_texture(gen_texture(self.perlin))
+        self.perlin = rl.gen_image_perlin_noise(1500, 500, rl.get_random_value(0, 10000), rl.get_random_value(0, 10000), 5)
+        self.texture = rl.load_texture_from_image(self.perlin)
 
     def orbit(self, G: float, dt: float):
         """Simulate perfectly circular orbit with keplerian mechanics"""

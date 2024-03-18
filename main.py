@@ -1,4 +1,5 @@
 from math import pi, log1p
+from copy import copy
 
 import pyray as rl
 from pyray import Color, MaterialMapIndex, Rectangle, ShaderLocationIndex, Vector2, Vector3, Vector4
@@ -278,14 +279,11 @@ def main():
 
             body_indices = { body: i for i, body in enumerate(system.bodies) }
             for planet in system.planets():
-                p = Planet(
-                    planet.orbit_radius,
-                    None if planet.orbit_center == None else system_copy.bodies[body_indices[planet.orbit_center]],
-                    G,
-                    planet.mass * G / planet.radius / planet.radius,
-                    planet.radius
-                )
-
+                p = copy(planet)
+                p.orbit_center = None if planet.orbit_center == None else system_copy.bodies[body_indices[planet.orbit_center]]
+                p.orbit_radius = planet.orbit_radius
+                p.mass = planet.mass
+                p.radius = planet.radius
                 p.orbit_angle = planet.orbit_angle
                 p.pos = planet.pos
                 p.color = planet.color
