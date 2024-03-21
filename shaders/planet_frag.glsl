@@ -18,6 +18,12 @@ uniform vec4 ambient;
 uniform vec3 sunPos;
 uniform vec3 viewPos;
 
+uniform vec4 first_layer;
+uniform vec4 second_layer;
+uniform vec4 third_layer;
+uniform vec4 fourth_layer;
+uniform vec4 fifth_layer;
+
 const float PI = 3.1415926535;
 
 void main() {
@@ -29,13 +35,13 @@ void main() {
 
     // Texel color fetching from texture sampler
     float noise = texture(texture0, vec2(u, v)).r;
-
-    vec4 color = vec4(0, 0, 0, 1);
-    if (noise < 0.4) color.rgb = vec3(0, 0.2, 1);
-    else if (noise < 0.5) color.rgb = vec3(0.8, 0.8, 0);
-    else if (noise > 0.9) color.rgb = vec3(1, 1, 1);
-    else if (noise > 0.6) color.rgb = vec3(0.2, 0.2, 0.2);
-    else color.rgb = vec3(0.1, 1, 0);
+    
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+    if (noise < 0.4) color.rgb = vec3(first_layer.r, first_layer.g, first_layer.b);
+    else if (noise < 0.5) color.rgb = second_layer.rgb;
+    else if (noise < 0.65) color.rgb = third_layer.rgb;
+    else if (noise < 0.85) color.rgb = fourth_layer.rgb;
+    else color.rgb = fifth_layer.rgb;
 
     normal = normalize(fragNormal);
     vec3 viewD = normalize(viewPos - fragPosition);

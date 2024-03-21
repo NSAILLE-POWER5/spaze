@@ -38,6 +38,12 @@ def main():
     u_ambient = rl.get_shader_location(planet_shader, "ambient")
     u_sun_pos = rl.get_shader_location(planet_shader, "sunPos")
     u_view_pos = rl.get_shader_location(planet_shader, "viewPos")
+    u_first_layer = rl.get_shader_location(planet_shader, "first_layer")
+    u_second_layer = rl.get_shader_location(planet_shader, "second_layer")
+    u_third_layer = rl.get_shader_location(planet_shader, "third_layer")
+    u_fourth_layer = rl.get_shader_location(planet_shader, "fourth_layer")
+    u_fifth_layer = rl.get_shader_location(planet_shader, "fifth_layer")
+
 
     rl.set_shader_value(planet_shader, u_ambient, Vector4(0.1, 0.1, 0.1, 1.0), rl.ShaderUniformDataType.SHADER_UNIFORM_VEC4)
     planet_shader.locs[rl.ShaderLocationIndex.SHADER_LOC_VECTOR_VIEW] = u_view_pos
@@ -191,8 +197,12 @@ def main():
         rl.draw_mesh(sphere, sun_mat, system.bodies[0].transform)
 
         for planet in system.planets():
-            planet_mat.maps.color = planet.color
             planet_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = planet.texture
+            rl.set_shader_value(planet_shader, u_first_layer, rl.Vector4(planet.colors[0].r / 255.0, planet.colors[0].g / 255.0, planet.colors[0].b / 255.0, planet.colors[0].a / 255.0), rl.SHADER_UNIFORM_VEC4)
+            rl.set_shader_value(planet_shader, u_second_layer, rl.Vector4(planet.colors[1].r / 255.0, planet.colors[1].g / 255.0, planet.colors[1].b / 255.0, planet.colors[1].a / 255.0), rl.SHADER_UNIFORM_VEC4)
+            rl.set_shader_value(planet_shader, u_third_layer, rl.Vector4(planet.colors[2].r / 255.0, planet.colors[2].g / 255.0, planet.colors[2].b / 255.0, planet.colors[2].a / 255.0), rl.SHADER_UNIFORM_VEC4)
+            rl.set_shader_value(planet_shader, u_fourth_layer, rl.Vector4(planet.colors[3].r / 255.0, planet.colors[3].g / 255.0, planet.colors[3].b / 255.0, planet.colors[3].a / 255.0), rl.SHADER_UNIFORM_VEC4)
+            rl.set_shader_value(planet_shader, u_fifth_layer, rl.Vector4(planet.colors[4].r / 255.0, planet.colors[4].g / 255.0, planet.colors[4].b / 255.0, planet.colors[4].a / 255.0), rl.SHADER_UNIFORM_VEC4)
             rl.draw_mesh(sphere, planet_mat, planet.transform) #ICI
         rl.end_mode_3d()
 
@@ -271,9 +281,9 @@ def main():
             rl.clear_background(BLACK)
             for body in system.bodies:
                 if body.orbit_center != None:
-                    rl.draw_circle_3d(body.orbit_center.pos, body.orbit_radius, Vector3(1, 0, 0), 90, rl.fade(body.color, 0.5))
+                    rl.draw_circle_3d(body.orbit_center.pos, body.orbit_radius, Vector3(1, 0, 0), 90, rl.fade(body.colors[0], 0.5))
 
-                rl.draw_sphere(body.pos, body.radius, body.color)
+                rl.draw_sphere(body.pos, body.radius, body.colors[0])
 
             system_copy = System(system.bodies[0])
 
@@ -286,7 +296,7 @@ def main():
                 p.radius = planet.radius
                 p.orbit_angle = planet.orbit_angle
                 p.pos = planet.pos
-                p.color = planet.color
+                p.color = planet.colors[0]
                 p.type = planet.type
                 p.vel = planet.vel
 
