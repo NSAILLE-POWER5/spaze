@@ -8,7 +8,7 @@ from raylib import ffi
 from icosphere import gen_icosphere
 from utils import get_projected_sphere_radius, randf
 from player import Player
-from system import Planet, System
+from system import Planet, System, New_system
 
 BLACK = Color(0, 0, 0, 255)
 RAYWHITE = Color(245, 245, 245, 255)
@@ -24,6 +24,10 @@ def main():
 
     G = 5
     dt = 1 / 60
+
+    eau = 0
+    oxy = 0
+    temp = 0
 
     sphere = gen_icosphere(4).create_mesh()
 
@@ -57,22 +61,14 @@ def main():
     sun_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].color = Color(255, 210, 0, 255)
     sun_mat.shader = sun_shader
 
-    system = System(Planet(0, None, G, 30, 200 ))
-
-    system.add(Planet(500, system.bodies[0], G, 6, 50))
-    system.add(Planet(800, system.bodies[0], G, 4, 30))
-    system.add(Planet(1800, system.bodies[0], G, 12, 100))
-    system.add(Planet(700, system.bodies[0], G, 6, 50))
-    system.add(Planet(900, system.bodies[0], G, 4, 30))
-    system.add(Planet(1100, system.bodies[0], G, 12, 100))
-
-    system.add(Planet(190, system.bodies[3], G, 2, 15))
+    system = New_system()
+    sys = system.new_sys()
 
     # initialize positions and transforms since the game is paused by default
     # and randomize orbit angles
-    for planet in system.planets():
+    for planet in sys.planets():
         planet.orbit_angle = randf() * 2 * pi
-    system.update(G, dt)
+    sys.update(G, dt)
 
     player = Player(
         Vector3(0, 0, -1300),
@@ -144,8 +140,8 @@ def main():
             map = not map
 
         if not paused:
-            system.update(G, dt)
-            player.apply_gravity(G, dt, system.bodies)
+            sys.update(G, dt)
+            player.apply_gravity(G, dt, sys.bodies)
             if not map:
                 player.handle_mouse_input(dt)
             player.handle_keyboard_input()
@@ -153,7 +149,7 @@ def main():
 
             if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
                 ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
-                for i, planet in enumerate(system.bodies):
+                for i, planet in enumerate(sys.bodies):
                     # skip if we're looking away from the planet
                     if rl.vector_3dot_product(ray.direction, rl.vector3_subtract(planet.pos, player.pos)) < 0:
                         continue
@@ -173,7 +169,7 @@ def main():
                 paused = False
 
         rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
-        rl.set_shader_value(planet_shader, u_sun_pos, system.bodies[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
+        rl.set_shader_value(planet_shader, u_sun_pos, sys.bodies[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
 
         rl.set_shader_value(sun_shader, sun_u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
         rl.set_shader_value(sun_shader, sun_u_time, rl.get_time(), rl.ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
@@ -188,9 +184,9 @@ def main():
         rl.draw_mesh_instanced(sky_model, sky_mat, sky_transforms, 1000)
         rl.rl_enable_depth_mask()
 
-        rl.draw_mesh(sphere, sun_mat, system.bodies[0].transform)
+        rl.draw_mesh(sphere, sun_mat, sys.bodies[0].transform)
 
-        for planet in system.planets():
+        for planet in sys.planets():
             planet_mat.maps.color = planet.color
             planet_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = planet.texture
             rl.draw_mesh(sphere, planet_mat, planet.transform) #ICI
@@ -202,10 +198,21 @@ def main():
         rl.draw_texture_pro(vaisseau, Rectangle(0, 0, 1280, 720),
                             Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
                             WHITE)
+        eau_txt = str(eau) + "% H²0"
+        water_width = rl.measure_text(eau_txt, 16)
+        rl.draw_text(eau_txt, int(2*cx / 2.294 - (water_width / 2)), int(2*cy / 1.58), 16, rl.GREEN)
+
+        oxy_txt = str(oxy) + "% de O²"
+        oxy_width = rl.measure_text(oxy_txt, 16)
+        rl.draw_text(oxy_txt, int(2*cx / 2.006 - (oxy_width / 2)), int(2*cy / 1.38), 16, rl.GREEN)
+
+        temp_txt = str(temp) + " C°"
+        temp_width = rl.measure_text(temp_txt, 16)
+        rl.draw_text(temp_txt, int(2*cx / 1.778 - (temp_width / 2)), int(2*cy / 1.58), 16, rl.GREEN)
 
         if selected_planet != -1:
             # show the relative velocity between the player and the selected planet
-            planet = system.bodies[selected_planet]
+            planet = sys.bodies[selected_planet]
             pos_diff = rl.vector3_subtract(planet.pos, player.pos)
             projected_radius = get_projected_sphere_radius(player.camera, rl.get_render_height(), planet.pos, planet.radius)
             # don't render if the planet is behind us
@@ -269,16 +276,16 @@ def main():
             rl.begin_mode_3d(isometric_cam)
 
             rl.clear_background(BLACK)
-            for body in system.bodies:
+            for body in sys.bodies:
                 if body.orbit_center != None:
                     rl.draw_circle_3d(body.orbit_center.pos, body.orbit_radius, Vector3(1, 0, 0), 90, rl.fade(body.color, 0.5))
 
                 rl.draw_sphere(body.pos, body.radius, body.color)
 
-            system_copy = System(system.bodies[0])
+            system_copy = System(sys.bodies[0])
 
-            body_indices = { body: i for i, body in enumerate(system.bodies) }
-            for planet in system.planets():
+            body_indices = { body: i for i, body in enumerate(sys.bodies) }
+            for planet in sys.planets():
                 p = copy(planet)
                 p.orbit_center = None if planet.orbit_center == None else system_copy.bodies[body_indices[planet.orbit_center]]
                 p.orbit_radius = planet.orbit_radius
