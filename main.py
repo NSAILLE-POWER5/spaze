@@ -1,4 +1,4 @@
-from math import pi, log1p
+from math import inf, pi, log1p
 from copy import copy
 
 import pyray as rl
@@ -187,18 +187,27 @@ def main():
             player.sync_camera()
 
             if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
+                closest, closest_idx = inf, None
+
                 ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
                 for i, planet in enumerate(sys.bodies):
                     # skip if we're looking away from the planet
-                    if rl.vector_3dot_product(ray.direction, rl.vector3_subtract(planet.pos, player.pos)) < 0:
+                    player_to_planet = rl.vector3_subtract(planet.pos, player.pos)
+                    if rl.vector_3dot_product(ray.direction, player_to_planet) < 0:
                         continue
 
                     coll = rl.get_ray_collision_sphere(ray, planet.pos, planet.radius)
                     if coll.hit:
-                        if selected_planet == i:
-                            selected_planet = -1
-                        else:
-                            selected_planet = i
+                        dist = rl.vector3_length_sqr(player_to_planet)
+                        if dist < closest:
+                            closest = dist
+                            closest_idx = i
+                
+                if closest_idx == selected_planet:
+                    selected_planet = -1
+                elif closest_idx != None:
+                    selected_planet = closest_idx
+
             if rl.is_key_pressed(rl.KeyboardKey.KEY_ESCAPE):
                 rl.enable_cursor()
                 paused = True
