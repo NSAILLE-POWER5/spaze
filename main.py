@@ -199,16 +199,16 @@ def main():
                             Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
                             WHITE)
         eau_txt = str(eau) + "% H²0"
-        water_width = rl.measure_text(eau_txt, 16)
-        rl.draw_text(eau_txt, int(2*cx / 2.294 - (water_width / 2)), int(2*cy / 1.58), 16, rl.GREEN)
+        water_width = rl.measure_text(eau_txt, 20)
+        rl.draw_text(eau_txt, int(2*cx / 2.294 - (water_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
 
         oxy_txt = str(oxy) + "% de O²"
-        oxy_width = rl.measure_text(oxy_txt, 16)
-        rl.draw_text(oxy_txt, int(2*cx / 2.006 - (oxy_width / 2)), int(2*cy / 1.38), 16, rl.GREEN)
+        oxy_width = rl.measure_text(oxy_txt, 20)
+        rl.draw_text(oxy_txt, int(2*cx / 2.006 - (oxy_width / 2)), int(2*cy / 1.38), 20, rl.GREEN)
 
         temp_txt = str(temp) + " C°"
-        temp_width = rl.measure_text(temp_txt, 16)
-        rl.draw_text(temp_txt, int(2*cx / 1.778 - (temp_width / 2)), int(2*cy / 1.58), 16, rl.GREEN)
+        temp_width = rl.measure_text(temp_txt, 20)
+        rl.draw_text(temp_txt, int(2*cx / 1.778 - (temp_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
 
         if selected_planet != -1:
             # show the relative velocity between the player and the selected planet
