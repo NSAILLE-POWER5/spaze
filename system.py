@@ -99,3 +99,46 @@ class System:
         for body in self.bodies:
             body.orbit(G, dt)
             body.compute_transform()
+
+class System:
+    def __init__(self, sun: Planet):
+        self.bodies = [sun]
+    
+    def add(self, planet: Planet):
+        """
+        Adds a new planet to the system.
+        Note that planets should be added "in order of orbit",
+        that means, planets should be added first, then moons, then moons of moons, etc...
+        """
+        self.bodies.append(planet)
+
+    def planets(self) -> Iterable[Planet]:
+        """
+        Returns an iterator over only the system's planets (without the sun)
+        """
+        return itertools.islice(self.bodies, 1, None)
+
+    def update(self, G: float, dt: float):
+        """Updates the solar system to its next position"""
+        for body in self.bodies:
+            body.orbit(G, dt)
+            body.compute_transform()
+
+class New_system:
+    G = 5
+
+    def new_sys(self):
+        system = System(Planet(0, None, self.G, 20, 250))
+
+        nb_planet = randint(3,7)
+
+        for i in range(nb_planet):
+            radius = randint(40, 75)
+            system.add(Planet(500 + randint(175, 250)*i, system.bodies[0], self.G, 0.075*radius//1, radius))
+
+        for j in range(1, nb_planet +1):
+            lune = randint(1, 100)
+            if lune <= 25:
+                radius = randint(12, 25)
+                system.add(Planet(125, system.bodies[i], self.G, 0.075 * radius // 1, radius))
+        return system
