@@ -33,8 +33,8 @@ class Planet:
         self.radius = radius
         self.transform = rl.matrix_identity()
         self.seed = randint(0, 100000)
-        self.perlin = gen_perlin(200, self.seed)
-        self.texture = rl.load_texture(gen_texture(self.perlin))
+        self.perlin = rl.gen_image_perlin_noise(1500, 500, randint(0, 1000), randint(0, 1000), 20.0)
+        self.texture = rl.load_texture_from_image(self.perlin)
 
     def orbit(self, G: float, dt: float):
         """Simulate perfectly circular orbit with keplerian mechanics"""

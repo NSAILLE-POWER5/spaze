@@ -79,5 +79,3 @@ def gen_texture(perlin) -> str:
     img.save(adress)
     #img.show()  # Show the image
     return adress
-
-gen_texture(gen_perlin(50, 135123))
