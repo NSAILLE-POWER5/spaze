@@ -61,11 +61,6 @@ class Player:
 
         self.vel = rl.vector3_add(self.vel, acc) # don't multiply by dt (impulse instead of force)
 
-        # sync camera
-        self.camera.up = up
-        self.camera.position = self.pos
-        self.camera.target = rl.vector3_add(self.camera.position, forward)
-
     def apply_gravity(self, G: float, dt: float, bodies: Iterable[Planet]):
         """Apply gravity force to the player from all bodies"""
         acc = vec3_zero()
@@ -83,3 +78,14 @@ class Player:
     def integrate(self, dt: float):
         """Apply velocity to position"""
         self.pos = rl.vector3_add(self.pos, rl.vector3_scale(self.vel, dt))
+    
+    def sync_camera(self):
+        """Synchronise the camera with the player's transforms"""
+        rot_matrix = rl.quaternion_to_matrix(self.rotation)
+        forward = rl.vector3_transform(Vector3(0, 0, -1), rot_matrix)
+        up = rl.vector3_transform(Vector3(0, 1, 0), rot_matrix)
+
+        # sync camera
+        self.camera.up = up
+        self.camera.position = self.pos
+        self.camera.target = rl.vector3_add(self.camera.position, forward)

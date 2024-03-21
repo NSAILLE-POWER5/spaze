@@ -184,6 +184,7 @@ def main():
                 player.handle_mouse_input(dt)
             player.handle_keyboard_input()
             player.integrate(dt)
+            player.sync_camera()
 
             if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
                 ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
