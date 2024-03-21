@@ -3,6 +3,7 @@ from math import sqrt, cos, sin, pi
 from random import randint
 import itertools
 
+
 import pyray as rl
 from pyray import Color, Matrix, Vector3
 
@@ -96,3 +97,22 @@ class System:
         for body in self.bodies:
             body.orbit(G, dt)
             body.compute_transform()
+
+class New_system:
+    G = 5
+
+    def new_sys(self):
+        system = System(Planet(0, None, self.G, 20, 250))
+
+        nb_planet = randint(3,7)
+
+        for i in range(nb_planet):
+            radius = randint(40, 75)
+            system.add(Planet(500 + 175*i, system.bodies[0], self.G, 0.075*radius//1, radius))
+
+        for j in range(nb_planet):
+            lune = randint(1, 100)
+            if lune <= 25:
+                radius = randint(12, 25)
+                system.add(Planet(125, system.bodies[i+1], self.G, 0.075 * radius // 1, radius))
+        return system
