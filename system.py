@@ -108,11 +108,11 @@ class New_system:
 
         for i in range(nb_planet):
             radius = randint(40, 75)
-            system.add(Planet(500 + 175*i, system.bodies[0], self.G, 0.075*radius//1, radius))
+            system.add(Planet(500 + randint(175, 250)*i, system.bodies[0], self.G, 0.075*radius//1, radius))
 
-        for j in range(nb_planet):
+        for j in range(1, nb_planet +1):
             lune = randint(1, 100)
             if lune <= 25:
                 radius = randint(12, 25)
-                system.add(Planet(125, system.bodies[i+1], self.G, 0.075 * radius // 1, radius))
+                system.add(Planet(125, system.bodies[i], self.G, 0.075 * radius // 1, radius))
         return system
