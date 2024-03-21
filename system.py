@@ -1,6 +1,5 @@
 from typing import Iterable, Self
 from math import sqrt, cos, sin, pi
-from perlin_noise import gen_perlin, gen_texture
 from random import randint
 import itertools
 
