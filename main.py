@@ -10,6 +10,39 @@ from utils import get_projected_sphere_radius, randf
 from player import Player
 from system import Planet, System
 
+def copy_state(system: System, player: Player) -> tuple[System, Player]:
+    """
+    Creates a copy of the given system and player state (with all texture/graphics information shared),
+    to allow simulating them at a different speed than the real-time simulation.
+    """
+    system_copy = System(system.bodies[0])
+
+    body_indices = { body: i for i, body in enumerate(system.bodies) }
+    for planet in system.planets():
+        p = copy(planet)
+        p.orbit_center = None if planet.orbit_center == None else system_copy.bodies[body_indices[planet.orbit_center]]
+        p.orbit_radius = planet.orbit_radius
+        p.mass = planet.mass
+        p.radius = planet.radius
+        p.orbit_angle = planet.orbit_angle
+        p.pos = planet.pos
+        p.color = planet.color
+        p.type = planet.type
+        p.vel = planet.vel
+
+        system_copy.add(p)
+
+    player_copy = Player(
+        player.pos,
+        player.vel,
+        player.camera,
+        player.rotation,
+        player.target_rotation
+    )
+
+    return system_copy, player_copy
+
+
 BLACK = Color(0, 0, 0, 255)
 RAYWHITE = Color(245, 245, 245, 255)
 WHITE = Color(255, 255, 255, 255)
@@ -32,7 +65,6 @@ def main():
     mercure_texture = rl.load_texture("assets/mercury.png")
     neptune_texture = rl.load_texture("assets/neptune.png")
     texture_types = [tera_texture, jupiter_texture, mercure_texture, neptune_texture]
-
 
     planet_shader = rl.load_shader("shaders/planet_vert.glsl", "shaders/planet_frag.glsl")
     u_ambient = rl.get_shader_location(planet_shader, "ambient")
@@ -275,33 +307,9 @@ def main():
 
                 rl.draw_sphere(body.pos, body.radius, body.color)
 
-            system_copy = System(system.bodies[0])
-
-            body_indices = { body: i for i, body in enumerate(system.bodies) }
-            for planet in system.planets():
-                p = copy(planet)
-                p.orbit_center = None if planet.orbit_center == None else system_copy.bodies[body_indices[planet.orbit_center]]
-                p.orbit_radius = planet.orbit_radius
-                p.mass = planet.mass
-                p.radius = planet.radius
-                p.orbit_angle = planet.orbit_angle
-                p.pos = planet.pos
-                p.color = planet.color
-                p.type = planet.type
-                p.vel = planet.vel
-
-                system_copy.add(p)
-
-            player_copy = Player(
-                player.pos,
-                player.vel,
-                player.camera,
-                player.rotation,
-                player.target_rotation
-            )
+            system_copy, player_copy = copy_state(system, player)
 
             simul_dt = 1/2
-
             trace = [player.pos]
 
             # simulate 50 seconds in advance
