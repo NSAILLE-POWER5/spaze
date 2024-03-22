@@ -38,7 +38,7 @@ class Planet:
         self.seed = randint(0, 100000)
         self.perlin = rl.gen_image_perlin_noise(1500, 500, randint(0, 1000), randint(0, 1000), 20.0)
         self.texture = rl.load_texture_from_image(self.perlin)
-        self.oxygen = randint(0, 20)
+        self.oxygen = randint(0, 30)
         self.temp = randint(-150, 150)
         self.eau = randint(0, 75)
         rl.set_texture_filter(self.texture, rl.TextureFilter.TEXTURE_FILTER_BILINEAR)
@@ -117,6 +117,7 @@ class New_system:
             radius = randint(40, 75)
             system.add(Planet(500 + randint(175, 250)*i, system.bodies[0], self.G, 0.075*radius//1, radius))
 
+        #Génère de façon aléatoire des lunes (1 chance sur 4 par planète)  
         for j in range(1, nb_planet +1):
             lune = randint(1, 100)
             if lune <= 25:
