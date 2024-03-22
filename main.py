@@ -26,7 +26,7 @@ def copy_state(system: System, player: Player) -> tuple[System, Player]:
         p.radius = planet.radius
         p.orbit_angle = planet.orbit_angle
         p.pos = planet.pos
-        p.color = planet.color
+        p.color = planet.colors[0]
         p.type = planet.type
         p.vel = planet.vel
 
@@ -320,9 +320,9 @@ def main():
             rl.clear_background(BLACK)
             for body in sys.bodies:
                 if body.orbit_center != None:
-                    rl.draw_circle_3d(body.orbit_center.pos, body.orbit_radius, Vector3(1, 0, 0), 90, rl.fade(body.color, 0.5))
+                    rl.draw_circle_3d(body.orbit_center.pos, body.orbit_radius, Vector3(1, 0, 0), 90, rl.fade(body.colors[0], 0.5))
 
-                rl.draw_sphere(body.pos, body.radius, body.color)
+                rl.draw_sphere(body.pos, body.radius, body.colors[0])
 
             system_copy, player_copy = copy_state(sys, player)
 
