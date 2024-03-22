@@ -58,10 +58,6 @@ def main():
     G = 5
     dt = 1 / 60
 
-    eau = 0
-    oxy = 0
-    temp = 0
-
     sphere = gen_icosphere(4).create_mesh()
 
     tera_texture = rl.load_texture("assets/tera.png")
@@ -250,14 +246,17 @@ def main():
         rl.draw_texture_pro(vaisseau, Rectangle(0, 0, 1280, 720),
                             Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
                             WHITE)
+
+        eau = sys.bodies[2].eau
+        oxy = sys.bodies[2].oxygen
+        temp = sys.bodies[2].temp
+
         eau_txt = str(eau) + "% H²0"
         water_width = rl.measure_text(eau_txt, 20)
         rl.draw_text(eau_txt, int(2*cx / 2.294 - (water_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
-
         oxy_txt = str(oxy) + "% de O²"
         oxy_width = rl.measure_text(oxy_txt, 20)
         rl.draw_text(oxy_txt, int(2*cx / 2.006 - (oxy_width / 2)), int(2*cy / 1.38), 20, rl.GREEN)
-
         temp_txt = str(temp) + " C°"
         temp_width = rl.measure_text(temp_txt, 20)
         rl.draw_text(temp_txt, int(2*cx / 1.778 - (temp_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
