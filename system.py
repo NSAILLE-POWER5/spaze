@@ -20,14 +20,13 @@ class Planet:
     mass: float
     radius: float
     transform: Matrix
+    oxygen: int
+    temp: int
+    eau: int
 
     def __init__(self, orbit_radius: float, orbit_center: Self | None, G: float, surface_gravity: float, radius: float):
         self.pos = vec3_zero()
         self.vel = vec3_zero()
-        self.colors = [ 
-            Color(rl.get_random_value(0, 250), rl.get_random_value(0, 250), rl.get_random_value(0, 250), 255) 
-            for i in range(5)
-        ]        
         self.type = rl.get_random_value(0, 3)
         self.orbit_radius = orbit_radius
         self.orbit_angle = 0
@@ -41,6 +40,7 @@ class Planet:
         self.oxygen = randint(0, 20)
         self.temp = randint(-150, 150)
         self.eau = randint(0, 75)
+        self.colors = self.gen_layer() 
         rl.set_texture_filter(self.texture, rl.TextureFilter.TEXTURE_FILTER_BILINEAR)
 
     def orbit(self, G: float, dt: float):
@@ -81,6 +81,23 @@ class Planet:
         self.transform = rl.matrix_multiply(self.transform, rl.matrix_rotate_xyz(Vector3(pi/2, 0.0, rl.get_time()/10.0)))
         self.transform = rl.matrix_multiply(self.transform, rl.matrix_translate(pos.x, pos.y, pos.z))
 
+    def gen_layer(self):
+        colors = []
+        layer_1 = Color(0, 20, 255, 255)
+        layer_2 = Color(125, 125, 0, 255)
+        layer_3 = Color(round((1-self.oxygen/20)*255), round((1-self.oxygen/20)*255), 10, 255)
+        layer_4 = Color(175, 175, 175, 255)
+        layer_5 = Color(255, 255, 255, 255)
+        colors.append(layer_1)
+        colors.append(layer_2)
+        colors.append(layer_3)
+        colors.append(layer_4)
+        colors.append(layer_5)
+        for i in colors:
+            i.r = round((self.temp+150)/300*i.r)
+            i.b = round((self.eau)/75*i.b)
+        return colors
+        
 class System:
     def __init__(self, sun: Planet):
         self.bodies = [sun]
