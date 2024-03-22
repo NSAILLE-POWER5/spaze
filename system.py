@@ -3,6 +3,7 @@ from math import sqrt, cos, sin, pi
 from random import randint
 import itertools
 
+
 import pyray as rl
 from pyray import Color, Matrix, Vector3
 
@@ -14,7 +15,7 @@ class Planet:
     orbit_radius: float
     orbit_angle: float
     orbit_center: Self | None
-    color : list[Color]
+    color : Color
     type : int 
     mass: float
     radius: float
@@ -23,10 +24,7 @@ class Planet:
     def __init__(self, orbit_radius: float, orbit_center: Self | None, G: float, surface_gravity: float, radius: float):
         self.pos = vec3_zero()
         self.vel = vec3_zero()
-        self.colors = [ 
-            Color(rl.get_random_value(0, 250), rl.get_random_value(0, 250), rl.get_random_value(0, 250), 255) 
-            for i in range(5)
-        ]
+        self.color = Color(rl.get_random_value(50, 200), rl.get_random_value(50, 200), rl.get_random_value(50, 200),255)
         self.type = rl.get_random_value(0, 3)
         self.orbit_radius = orbit_radius
         self.orbit_angle = 0
@@ -75,30 +73,6 @@ class Planet:
         self.transform = rl.matrix_scale(radius, radius, radius)
         self.transform = rl.matrix_multiply(self.transform, rl.matrix_rotate_xyz(Vector3(pi/2, 0.0, rl.get_time()/10.0)))
         self.transform = rl.matrix_multiply(self.transform, rl.matrix_translate(pos.x, pos.y, pos.z))
-
-class System:
-    def __init__(self, sun: Planet):
-        self.bodies = [sun]
-    
-    def add(self, planet: Planet):
-        """
-        Adds a new planet to the system.
-        Note that planets should be added "in order of orbit",
-        that means, planets should be added first, then moons, then moons of moons, etc...
-        """
-        self.bodies.append(planet)
-
-    def planets(self) -> Iterable[Planet]:
-        """
-        Returns an iterator over only the system's planets (without the sun)
-        """
-        return itertools.islice(self.bodies, 1, None)
-
-    def update(self, G: float, dt: float):
-        """Updates the solar system to its next position"""
-        for body in self.bodies:
-            body.orbit(G, dt)
-            body.compute_transform()
 
 class System:
     def __init__(self, sun: Planet):
