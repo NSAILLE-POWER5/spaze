@@ -15,7 +15,7 @@ class Planet:
     orbit_radius: float
     orbit_angle: float
     orbit_center: Self | None
-    color : Color
+    color : [Color]
     type : int 
     mass: float
     radius: float
@@ -24,7 +24,10 @@ class Planet:
     def __init__(self, orbit_radius: float, orbit_center: Self | None, G: float, surface_gravity: float, radius: float):
         self.pos = vec3_zero()
         self.vel = vec3_zero()
-        self.color = Color(rl.get_random_value(50, 200), rl.get_random_value(50, 200), rl.get_random_value(50, 200),255)
+        self.colors = [ 
+            Color(rl.get_random_value(0, 250), rl.get_random_value(0, 250), rl.get_random_value(0, 250), 255) 
+            for i in range(5)
+        ]        
         self.type = rl.get_random_value(0, 3)
         self.orbit_radius = orbit_radius
         self.orbit_angle = 0
