@@ -85,7 +85,7 @@ class Planet:
         colors = []
         layer_1 = Color(0, 20, 255, 255)
         layer_2 = Color(125, 125, 0, 255)
-        layer_3 = Color(round((1-self.oxygen/20)*255), round((1-self.oxygen/20)*255), 10, 255)
+        layer_3 = Color(round((1-self.oxygen/30)*255), round((1-self.oxygen/30)*255), 10, 255)
         layer_4 = Color(175, 175, 175, 255)
         layer_5 = Color(255, 255, 255, 255)
         colors.append(layer_1)
