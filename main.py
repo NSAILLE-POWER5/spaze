@@ -1,4 +1,4 @@
-from math import inf, pi, log1p
+from math import inf, pi, log1p, sqrt
 from copy import copy
 
 import pyray as rl
@@ -157,7 +157,13 @@ def main():
         rl.CameraProjection.CAMERA_ORTHOGRAPHIC
     )
 
-    while not rl.window_should_close():
+    def CollisionCheck():
+        for planet in sys.planets():
+            if sqrt((player.pos.x-planet.pos.x)**2+(player.pos.y-planet.pos.y)**2+(player.pos.z-planet.pos.z)**2) <= planet.radius:
+                return False
+        return True
+
+    while not rl.window_should_close() and CollisionCheck():
         inverted_render_rect = Rectangle(0, 0, rl.get_render_width(), -rl.get_render_height())
         if rl.is_window_resized():
             rl.unload_render_texture(bloom_target)
