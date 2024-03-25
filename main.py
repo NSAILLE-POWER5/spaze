@@ -216,7 +216,7 @@ def main():
         rl.set_shader_value(planet_shader, u_sun_pos, sys.bodies[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
 
         rl.set_shader_value(sun_shader, sun_u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
-        rl.set_shader_value(sun_shader, sun_u_time, ffi.new("float *", rl.get_time()), rl.ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
+        rl.set_shader_value(sun_shader, sun_u_time, rl.get_time(), rl.ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
 
 
         rl.begin_texture_mode(target)
