@@ -253,23 +253,33 @@ def main():
                             Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
                             WHITE)
 
-        eau = sys.bodies[2].eau
-        oxy = sys.bodies[2].oxygen
-        temp = sys.bodies[2].temp
+        eau = 0
+        oxy = 0
+        temp = 0
 
-        eau_txt = str(eau) + "% H²0"
-        water_width = rl.measure_text(eau_txt, 20)
-        rl.draw_text(eau_txt, int(2*cx / 2.294 - (water_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
-        oxy_txt = str(oxy) + "% de O²"
-        oxy_width = rl.measure_text(oxy_txt, 20)
-        rl.draw_text(oxy_txt, int(2*cx / 2.006 - (oxy_width / 2)), int(2*cy / 1.38), 20, rl.GREEN)
-        temp_txt = str(temp) + " C°"
-        temp_width = rl.measure_text(temp_txt, 20)
-        rl.draw_text(temp_txt, int(2*cx / 1.778 - (temp_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
 
         if selected_planet != -1:
-            # show the relative velocity between the player and the selected planet
             planet = sys.bodies[selected_planet]
+            if selected_planet == 0:
+                eau = 0
+                oxy = 0
+                temp = 15000
+            else:
+                eau = planet.eau
+                oxy = planet.oxygen
+                temp = planet.temp
+            
+            eau_txt = str(eau) + "% H²0"
+            water_width = rl.measure_text(eau_txt, 20)
+            rl.draw_text(eau_txt, int(2*cx / 2.294 - (water_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
+            oxy_txt = str(oxy) + "% de O²"
+            oxy_width = rl.measure_text(oxy_txt, 20)
+            rl.draw_text(oxy_txt, int(2*cx / 2.006 - (oxy_width / 2)), int(2*cy / 1.38), 20, rl.GREEN)
+            temp_txt = str(temp) + " C°"
+            temp_width = rl.measure_text(temp_txt, 20)
+            rl.draw_text(temp_txt, int(2*cx / 1.778 - (temp_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
+
+            # show the relative velocity between the player and the selected planet
             pos_diff = rl.vector3_subtract(planet.pos, player.pos)
             projected_radius = get_projected_sphere_radius(player.camera, rl.get_render_height(), planet.pos, planet.radius)
             # don't render if the planet is behind us
