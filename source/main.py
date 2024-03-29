@@ -1,13 +1,11 @@
 from math import inf, pi, log1p, sqrt
 from copy import copy
-from random import randint
 
 import pyray as rl
 from pyray import Color, MaterialMapIndex, Rectangle, ShaderLocationIndex, Vector2, Vector3, Vector4
-from raylib import SHADER_UNIFORM_VEC4, ffi, SHADER_UNIFORM_FLOAT
+from raylib import SHADER_ATTRIB_VEC3, SHADER_UNIFORM_VEC3, SHADER_UNIFORM_VEC4, ffi, SHADER_UNIFORM_FLOAT
 
 from icosphere import gen_icosphere
-from noise import generate_noise
 from utils import get_projected_sphere_radius, randf
 from player import Player
 from system import Planet, System, New_system
@@ -74,7 +72,7 @@ def main():
     u_fifth_layer = rl.get_shader_location(planet_shader, "fifth_layer")
 
 
-    rl.set_shader_value(planet_shader, u_ambient, Vector4(0.1, 0.1, 0.1, 1.0), rl.ShaderUniformDataType.SHADER_UNIFORM_VEC4)
+    rl.set_shader_value(planet_shader, u_ambient, Vector4(0.1, 0.1, 0.1, 1.0), SHADER_UNIFORM_VEC4)
     planet_shader.locs[rl.ShaderLocationIndex.SHADER_LOC_VECTOR_VIEW] = u_view_pos
 
     planet_mat = rl.load_material_default()
@@ -210,11 +208,11 @@ def main():
                 rl.disable_cursor()
                 paused = False
 
-        rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
-        rl.set_shader_value(planet_shader, u_sun_pos, sys.bodies[0].pos, rl.ShaderAttributeDataType.SHADER_ATTRIB_VEC3)
+        rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, SHADER_UNIFORM_VEC3)
+        rl.set_shader_value(planet_shader, u_sun_pos, sys.bodies[0].pos, SHADER_ATTRIB_VEC3)
 
-        rl.set_shader_value(sun_shader, sun_u_view_pos, player.camera.position, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC3)
-        rl.set_shader_value(sun_shader, sun_u_time, ffi.new("float *", rl.get_time()), rl.ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
+        rl.set_shader_value(sun_shader, sun_u_view_pos, player.camera.position, SHADER_UNIFORM_VEC3)
+        rl.set_shader_value(sun_shader, sun_u_time, ffi.new("float *", rl.get_time()), SHADER_UNIFORM_FLOAT)
 
 
         rl.begin_texture_mode(target)
