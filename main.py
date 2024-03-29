@@ -64,6 +64,7 @@ def main():
     jupiter_texture = rl.load_texture("assets/jupiter.png")
     mercure_texture = rl.load_texture("assets/mercury.png")
     neptune_texture = rl.load_texture("assets/neptune.png")
+    game_over = rl.load_texture("assets/game over.png")
     texture_types = [tera_texture, jupiter_texture, mercure_texture, neptune_texture]
 
     planet_shader = rl.load_shader("shaders/planet_vert.glsl", "shaders/planet_frag.glsl")
@@ -158,12 +159,12 @@ def main():
     )
 
     def CollisionCheck():
-        for planet in sys.planets():
-            if sqrt((player.pos.x-planet.pos.x)**2+(player.pos.y-planet.pos.y)**2+(player.pos.z-planet.pos.z)**2) <= planet.radius:
+        for bodies in sys.bodies:
+            if sqrt((player.pos.x - bodies.pos.x) ** 2 + (player.pos.y - bodies.pos.y) ** 2 + (player.pos.z - bodies.pos.z) ** 2) <= planet.radius:
                 return False
         return True
 
-    while not rl.window_should_close() and CollisionCheck():
+    while not rl.window_should_close():
         inverted_render_rect = Rectangle(0, 0, rl.get_render_width(), -rl.get_render_height())
         if rl.is_window_resized():
             rl.unload_render_texture(bloom_target)
@@ -204,7 +205,7 @@ def main():
                         if dist < closest:
                             closest = dist
                             closest_idx = i
-                
+
                 if closest_idx == selected_planet:
                     selected_planet = -1
                 elif closest_idx != None:
@@ -257,18 +258,18 @@ def main():
         oxy = 0
         temp = 0
 
-
         if selected_planet != -1:
             planet = sys.bodies[selected_planet]
-            if selected_planet == 0:
-                eau = 0
-                oxy = 0
-                temp = 15000
-            else:
-                eau = planet.eau
-                oxy = planet.oxygen
-                temp = planet.temp
-            
+            if sqrt((player.pos.x - planet.pos.x) ** 2 + (player.pos.y - planet.pos.y) ** 2 + (player.pos.z - planet.pos.z) ** 2) <= planet.radius + 250:
+                if selected_planet == 0:
+                    eau = 0
+                    oxy = 0
+                    temp = 15000
+                else:
+                    eau = planet.eau
+                    oxy = planet.oxygen
+                    temp = planet.temp
+
             eau_txt = str(eau) + "% H²0"
             water_width = rl.measure_text(eau_txt, 20)
             rl.draw_text(eau_txt, int(2*cx / 2.294 - (water_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
@@ -367,8 +368,7 @@ def main():
                         stop = True
 
                 trace.append(player_copy.pos)
-                if stop:
-                    break
+
 
             for i in range(1, len(trace)):
                 prev = trace[i-1]
@@ -381,6 +381,7 @@ def main():
 
             rl.draw_cube(rl.vector3_add(player.pos, Vector3(5, 5, 5)), 10, 10, 10, WHITE)
 
+
             rl.end_mode_3d()
 
         if paused:
@@ -390,6 +391,11 @@ def main():
             pause_width = rl.measure_text("Paused", 20)
             rl.draw_text("Paused", int(cx - pause_width/2), int(cy-10), 20, WHITE)
 
+        if not CollisionCheck():
+            rl.draw_texture_pro(game_over, Rectangle(0, 0, 1280, 720),
+                                Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
+                                WHITE)
+            sys = system.new_sys()
         rl.end_drawing()
 
 
