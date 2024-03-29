@@ -8,7 +8,7 @@ import pyray as rl
 from pyray import Color, Vector2, Vector3
 from noise import generate_noise
 
-from utils import vec3_zero
+from utils import randfr, vec3_zero
 
 class Planet:
     def __init__(self, orbit_radius: float, orbit_center: Self | None, G: float, surface_gravity: float, radius: float):
@@ -22,7 +22,13 @@ class Planet:
         self.radius = radius
         self.transform = rl.matrix_identity()
         self.seed = randint(0, 100000)
-        self.noise = generate_noise((1500, 500), Vector2(100.0, 100.0), Vector2(randint(0, 1000), randint(0, 1000)), 6, 2.0, 0.5, True, False)
+
+        scale = randfr(70.0, 130.0)
+        octaves = randint(2, 8)
+        lacunarity = randfr(1.3, 2.5)
+        gain = randfr(0.3, 0.8)
+        ridged = bool(randint(0, 1))
+        self.noise = generate_noise((1500, 500), Vector2(scale, scale), Vector2(randint(0, 10000), randint(0, 10000)), octaves, lacunarity, gain, ridged, False)
         self.oxygen = randint(0, 30)
         self.temp = randint(-150, 150)
         self.eau = randint(0, 75)

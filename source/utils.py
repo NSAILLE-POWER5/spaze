@@ -1,6 +1,6 @@
 from math import tan, radians, sqrt
 from typing import TypeAlias
-from pyray import Vector3, Camera3D, Vector4, vector_3distance, get_random_value
+from pyray import Vector3, Camera3D, Vector4, vector_3distance, get_random_value, remap
 
 Quat: TypeAlias = Vector4
 
@@ -33,3 +33,6 @@ def randf() -> float:
     """Returns value between 0 (inclusive) and 1 (exclusive)"""
     return get_random_value(0, 999999)/1000000
 
+def randfr(min: float, max: float) -> float:
+    """Returns a random floating point value between the mininum (inclusive) and the maximum (exclusive)"""
+    return remap(randf(), 0.0, 1.0, min, max)
