@@ -7,7 +7,7 @@ noise_shader = None
 def generate_noise(size: tuple[int, int], scale: Vector2, pos: Vector2, octaves: int, frequency: float, amplitude: float, ridge: bool, invert: bool) -> RenderTexture:
     global noise_shader
     if noise_shader == None:
-        noise_shader = rl.load_shader("shaders/noise_vert.glsl", "shaders/noise_frag.glsl")
+        noise_shader = rl.load_shader("source/shaders/noise_vert.glsl", "source/shaders/noise_frag.glsl")
 
     rl.set_shader_value(noise_shader, rl.get_shader_location(noise_shader, "scale"), scale, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC2)
     rl.set_shader_value(noise_shader, rl.get_shader_location(noise_shader, "pos"), pos, rl.ShaderUniformDataType.SHADER_UNIFORM_VEC2)
