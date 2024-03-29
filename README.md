@@ -6,19 +6,17 @@
 - Ensuite, lancez `./build_linux.sh` pour compiler raylib et ses bindings python.
 - Vous pouvez lancer le jeu avec `python3 source/main.py`!
 
-## Instruction d'installation (Windows)
+## Instructions d'installation (Windows)
 
-- Assurez-vous d'avoir un version de python superieur a 3.12, (version recommandée : [3.12.2](https://www.python.org/ftp/python/3.12.2/Python-3.12.2.tar.xz))
-- Lancer l'executable `setup.bat`
-- Si `source/setup.bat` ne se lance pas executer les commandes suivantes dans votre terminal.
+- Assurez-vous d'avoir une version de Python supérieure à 3.12 (version recommandée : [3.12.2](https://www.python.org/ftp/python/3.12.2/python-3.12.2-amd64.exe)).  
+  Et vérifiez que les exécutables `python` et `pip3` soient accessibles dans le PATH.
+- Lancez l'exécutable `setup.bat`.
+- Si `setup.bat` ne se lance pas, exécutez les commandes suivantes dans votre terminal:
 ```powershell
-pip install cffi
+pip3 uninstall raylib
+pip3 install raylib-5.0.0.1-cp312-cp312-win_amd64.whl --no-cache-dir --upgrade --force-reinstall
 ```
-- puis:
-```powershell
-pip3 install source/raylib-5.0.0.1-cp312-cp312-win_amd64.whl --no-cache-dir --upgrade --force-reinstall
-```
-- Enfin, lancez le jeu avec `source/python main.py` et amusez vous bien.
+- Enfin, lancez le jeu avec `python source/main.py` et amusez-vous bien.
 
 ## Pourquoi est-il nécessaire de compiler raylib?
 
