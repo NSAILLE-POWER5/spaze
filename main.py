@@ -1,11 +1,13 @@
 from math import inf, pi, log1p, sqrt
 from copy import copy
+from random import randint
 
 import pyray as rl
 from pyray import Color, MaterialMapIndex, Rectangle, ShaderLocationIndex, Vector2, Vector3, Vector4
 from raylib import ffi
 
 from icosphere import gen_icosphere
+from noise import generate_noise
 from utils import get_projected_sphere_radius, randf
 from player import Player
 from system import Planet, System, New_system
@@ -238,7 +240,7 @@ def main():
         rl.draw_mesh(sphere, sun_mat, sys.bodies[0].transform)
 
         for planet in sys.planets():
-            planet_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = planet.texture
+            planet_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = planet.noise.texture
             rl.set_shader_value(planet_shader, u_first_layer, rl.Vector4(planet.colors[0].r / 255.0, planet.colors[0].g / 255.0, planet.colors[0].b / 255.0, planet.colors[0].a / 255.0), rl.SHADER_UNIFORM_VEC4)
             rl.set_shader_value(planet_shader, u_second_layer, rl.Vector4(planet.colors[1].r / 255.0, planet.colors[1].g / 255.0, planet.colors[1].b / 255.0, planet.colors[1].a / 255.0), rl.SHADER_UNIFORM_VEC4)
             rl.set_shader_value(planet_shader, u_third_layer, rl.Vector4(planet.colors[2].r / 255.0, planet.colors[2].g / 255.0, planet.colors[2].b / 255.0, planet.colors[2].a / 255.0), rl.SHADER_UNIFORM_VEC4)

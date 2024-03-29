@@ -97,7 +97,7 @@ uniform bool ridge;
 uniform bool invert;
 
 void main() {
-	vec2 p = fragPosition*scale + pos;
+	vec2 p = fragPosition/scale + pos;
 
 	float amp = 1.0;
 	float freq = 1.0;
@@ -126,5 +126,5 @@ void main() {
 	finalColor = vec4(value, value, value, 1.0);
 
     // Gamma correction
-    finalColor = pow(finalColor, vec4(1.0/2.2));
+    // finalColor = pow(finalColor, vec4(1.0/2.2));
 }

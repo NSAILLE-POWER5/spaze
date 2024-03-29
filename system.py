@@ -5,25 +5,12 @@ import itertools
 
 
 import pyray as rl
-from pyray import Color, Matrix, Vector3
+from pyray import Color, Matrix, Vector2, Vector3
+from noise import generate_noise
 
 from utils import vec3_zero
 
 class Planet:
-    pos: Vector3
-    vel: Vector3 # instantaneous velocity
-    orbit_radius: float
-    orbit_angle: float
-    orbit_center: Self | None
-    color : [Color]
-    type : int 
-    mass: float
-    radius: float
-    transform: Matrix
-    oxygen: int
-    temp: int
-    eau: int
-
     def __init__(self, orbit_radius: float, orbit_center: Self | None, G: float, surface_gravity: float, radius: float):
         self.pos = vec3_zero()
         self.vel = vec3_zero()
@@ -35,13 +22,12 @@ class Planet:
         self.radius = radius
         self.transform = rl.matrix_identity()
         self.seed = randint(0, 100000)
-        self.perlin = rl.gen_image_perlin_noise(1500, 500, randint(0, 1000), randint(0, 1000), 20.0)
-        self.texture = rl.load_texture_from_image(self.perlin)
+        self.noise = generate_noise((1500, 500), Vector2(100.0, 100.0), Vector2(randint(0, 1000), randint(0, 1000)), 6, 2.0, 0.5, True, False)
         self.oxygen = randint(0, 30)
         self.temp = randint(-150, 150)
         self.eau = randint(0, 75)
         self.colors = self.gen_layer() 
-        rl.set_texture_filter(self.texture, rl.TextureFilter.TEXTURE_FILTER_BILINEAR)
+        rl.set_texture_filter(self.noise.texture, rl.TextureFilter.TEXTURE_FILTER_BILINEAR)
 
     def orbit(self, G: float, dt: float):
         """Simulate perfectly circular orbit with keplerian mechanics"""

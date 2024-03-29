@@ -1,10 +1,10 @@
-from pyray import Texture, Vector2
+from pyray import RenderTexture, Texture, Vector2
 import pyray as rl
 from raylib import ffi
 
 noise_shader = None
 
-def generate_noise(size: tuple[int, int], scale: Vector2, pos: Vector2, octaves: int, frequency: float, amplitude: float, ridge: bool, invert: bool) -> Texture:
+def generate_noise(size: tuple[int, int], scale: Vector2, pos: Vector2, octaves: int, frequency: float, amplitude: float, ridge: bool, invert: bool) -> RenderTexture:
     global noise_shader
     if noise_shader == None:
         noise_shader = rl.load_shader("shaders/noise_vert.glsl", "shaders/noise_frag.glsl")
@@ -17,6 +17,8 @@ def generate_noise(size: tuple[int, int], scale: Vector2, pos: Vector2, octaves:
     rl.set_shader_value(noise_shader, rl.get_shader_location(noise_shader, "ridge"), ffi.new("int *", int(ridge)), rl.ShaderUniformDataType.SHADER_UNIFORM_INT)
     rl.set_shader_value(noise_shader, rl.get_shader_location(noise_shader, "invert"), ffi.new("int *", int(invert)), rl.ShaderUniformDataType.SHADER_UNIFORM_INT)
 
+    print(f"CREATING NOISE TEXTURE [{size[0]}x{size[1]}]")
+
     render = rl.load_render_texture(size[0], size[1])
     rl.begin_texture_mode(render)
     rl.begin_shader_mode(noise_shader)
@@ -26,7 +28,4 @@ def generate_noise(size: tuple[int, int], scale: Vector2, pos: Vector2, octaves:
     rl.end_shader_mode()
     rl.end_texture_mode()
 
-    # unload render texture frame buffer (keep only texture)
-    rl.rl_unload_framebuffer(render.depth.id)
-
-    return render.texture
+    return render
