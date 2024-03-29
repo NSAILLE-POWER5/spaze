@@ -28,4 +28,4 @@ Or, pour créer une impression de distance, nouse avons besoin de voir plus loin
 
 Ainsi, nous devons modifier la configuration dans raylib (chose faîte dans un [fork](https://github.com/NSAILLE-POWER5/raylib/tree/farplane)), compiler la librarie,
 et reconstruire les [bindings python](https://github.com/electronstudio/raylib-python-cffi) nous permettant d'y accéder.  
-C'est ce dont s'occupent les scripts `build_linux.sh` et `build_windows.ps`.
+C'est ce dont s'occupent les scripts `build_linux.sh` et `setup.bat`.
