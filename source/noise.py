@@ -6,7 +6,7 @@ from colors import WHITE
 
 class NoiseShader:
     def __init__(self):
-        self.shader = rl.load_shader("source/shaders/noise_vert.glsl", "source/shaders/noise_frag.glsl")
+        self.shader = rl.load_shader("shaders/noise_vert.glsl", "shaders/noise_frag.glsl")
         self.u_scale = rl.get_shader_location(self.shader, "scale")
         self.u_pos = rl.get_shader_location(self.shader, "pos")
         self.u_octaves = rl.get_shader_location(self.shader, "octaves")
