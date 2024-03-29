@@ -1,4 +1,4 @@
-from pyray import RenderTexture, Texture, Vector2
+from pyray import RenderTexture, Vector2
 import pyray as rl
 from raylib import ffi
 

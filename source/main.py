@@ -140,9 +140,6 @@ def main():
     sky_mat = rl.load_material_default()
     sky_mat.shader = sky_shader
 
-    bloom_shader = rl.load_shader("", "source/shaders/bloom.glsl")
-
-    bloom_target = rl.load_render_texture(1280, 720)
     target = rl.load_render_texture(1280, 720)
     rl.set_texture_wrap(target.texture, rl.TextureWrap.TEXTURE_WRAP_CLAMP)
 
@@ -169,10 +166,8 @@ def main():
     while not rl.window_should_close():
         inverted_render_rect = Rectangle(0, 0, rl.get_render_width(), -rl.get_render_height())
         if rl.is_window_resized():
-            rl.unload_render_texture(bloom_target)
             rl.unload_render_texture(target)
 
-            bloom_target = rl.load_render_texture(rl.get_render_width(), rl.get_render_height())
             target = rl.load_render_texture(rl.get_render_width(), rl.get_render_height())
             rl.set_texture_wrap(target.texture, rl.TextureWrap.TEXTURE_WRAP_CLAMP)
 
