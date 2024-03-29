@@ -4,7 +4,7 @@
 
 - Premièrement, assurez-vous de posséder les dépendances nécéssaires: `OpenGL`, `cmake`, `make` et `gcc` (ou `clang`).
 - Ensuite, lancez `./build_linux.sh` pour compiler raylib et ses bindings python.
-- Vous pouvez lancer le jeu avec `python3 main.py`!
+- Vous pouvez lancer le jeu avec `python3 source/main.py`!
 
 ## Instruction d'installation (Windows)
 
@@ -16,9 +16,9 @@ pip install cffi
 ```
 - puis:
 ```powershell
-pip3 install raylib-5.0.0.1-cp312-cp312-win_amd64.whl --no-cache-dir --upgrade --force-reinstall
+pip3 install source/raylib-5.0.0.1-cp312-cp312-win_amd64.whl --no-cache-dir --upgrade --force-reinstall
 ```
-- Enfin, lancez le jeu avec `python main.py` et amusez vous bien.
+- Enfin, lancez le jeu avec `sourcepython main.py` et amusez vous bien.
 
 ## Pourquoi est-il nécessaire de compiler raylib?
 
