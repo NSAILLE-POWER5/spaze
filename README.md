@@ -8,7 +8,17 @@
 
 ## Instruction d'installation (Windows)
 
-TODO
+- Assurez-vous d'avoir un version de python superieur a 3.12, (version recommandée : [3.12.2](https://www.python.org/ftp/python/3.12.2/Python-3.12.2.tar.xz))
+- Lancer l'executable `setup.bat`
+- Si `setup.bat` ne se lance pas executer les commandes suivantes dans votre terminal.
+```powershell
+pip install cffi
+```
+- puis:
+```powershell
+pip3 install raylib-5.0.0.1-cp312-cp312-win_amd64.whl --no-cache-dir --upgrade --force-reinstall
+```
+- Enfin, lancez le jeu avec `python main.py` et amusez vous bien.
 
 ## Pourquoi est-il nécessaire de compiler raylib?
 
