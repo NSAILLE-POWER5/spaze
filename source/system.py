@@ -5,7 +5,7 @@ import itertools
 
 
 import pyray as rl
-from pyray import Color, Matrix, Vector2, Vector3
+from pyray import Color, Vector2, Vector3
 from noise import generate_noise
 
 from utils import vec3_zero
@@ -16,7 +16,7 @@ class Planet:
         self.vel = vec3_zero()
         self.type = rl.get_random_value(0, 3)
         self.orbit_radius = orbit_radius
-        self.orbit_angle = 0
+        self.orbit_angle = 0.0
         self.orbit_center = orbit_center
         self.mass = radius*radius*surface_gravity / G # set mass based on surface gravity
         self.radius = radius
@@ -125,5 +125,5 @@ class New_system:
             lune = randint(1, 100)
             if lune <= 25:
                 radius = randint(12, 25)
-                system.add(Planet(125, system.bodies[i], self.G, 0.075 * radius // 1, radius))
+                system.add(Planet(125, system.bodies[j], self.G, 0.075 * radius // 1, radius))
         return system

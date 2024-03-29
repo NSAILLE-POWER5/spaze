@@ -4,13 +4,14 @@ from random import randint
 
 import pyray as rl
 from pyray import Color, MaterialMapIndex, Rectangle, ShaderLocationIndex, Vector2, Vector3, Vector4
-from raylib import ffi
+from raylib import SHADER_UNIFORM_VEC4, ffi, SHADER_UNIFORM_FLOAT
 
 from icosphere import gen_icosphere
 from noise import generate_noise
 from utils import get_projected_sphere_radius, randf
 from player import Player
 from system import Planet, System, New_system
+from colors import BLACK, RAYWHITE, WHITE, BLANK, RED, GREEN
 
 def copy_state(system: System, player: Player) -> tuple[System, Player]:
     """
@@ -28,7 +29,7 @@ def copy_state(system: System, player: Player) -> tuple[System, Player]:
         p.radius = planet.radius
         p.orbit_angle = planet.orbit_angle
         p.pos = planet.pos
-        p.color = planet.colors[0]
+        p.colors = planet.colors
         p.type = planet.type
         p.vel = planet.vel
 
@@ -43,13 +44,6 @@ def copy_state(system: System, player: Player) -> tuple[System, Player]:
     )
 
     return system_copy, player_copy
-
-
-BLACK = Color(0, 0, 0, 255)
-RAYWHITE = Color(245, 245, 245, 255)
-WHITE = Color(255, 255, 255, 255)
-BLANK = Color(0, 0, 0, 0)
-RED = Color(255, 0, 0, 255)
 
 def main():
     rl.init_window(1280, 720, "Spaze")
@@ -236,11 +230,11 @@ def main():
 
         for planet in sys.planets():
             planet_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = planet.noise.texture
-            rl.set_shader_value(planet_shader, u_first_layer, rl.Vector4(planet.colors[0].r / 255.0, planet.colors[0].g / 255.0, planet.colors[0].b / 255.0, planet.colors[0].a / 255.0), rl.SHADER_UNIFORM_VEC4)
-            rl.set_shader_value(planet_shader, u_second_layer, rl.Vector4(planet.colors[1].r / 255.0, planet.colors[1].g / 255.0, planet.colors[1].b / 255.0, planet.colors[1].a / 255.0), rl.SHADER_UNIFORM_VEC4)
-            rl.set_shader_value(planet_shader, u_third_layer, rl.Vector4(planet.colors[2].r / 255.0, planet.colors[2].g / 255.0, planet.colors[2].b / 255.0, planet.colors[2].a / 255.0), rl.SHADER_UNIFORM_VEC4)
-            rl.set_shader_value(planet_shader, u_fourth_layer, rl.Vector4(planet.colors[3].r / 255.0, planet.colors[3].g / 255.0, planet.colors[3].b / 255.0, planet.colors[3].a / 255.0), rl.SHADER_UNIFORM_VEC4)
-            rl.set_shader_value(planet_shader, u_fifth_layer, rl.Vector4(planet.colors[4].r / 255.0, planet.colors[4].g / 255.0, planet.colors[4].b / 255.0, planet.colors[4].a / 255.0), rl.SHADER_UNIFORM_VEC4)
+            rl.set_shader_value(planet_shader, u_first_layer, rl.Vector4(planet.colors[0].r / 255.0, planet.colors[0].g / 255.0, planet.colors[0].b / 255.0, planet.colors[0].a / 255.0), SHADER_UNIFORM_VEC4)
+            rl.set_shader_value(planet_shader, u_second_layer, rl.Vector4(planet.colors[1].r / 255.0, planet.colors[1].g / 255.0, planet.colors[1].b / 255.0, planet.colors[1].a / 255.0), SHADER_UNIFORM_VEC4)
+            rl.set_shader_value(planet_shader, u_third_layer, rl.Vector4(planet.colors[2].r / 255.0, planet.colors[2].g / 255.0, planet.colors[2].b / 255.0, planet.colors[2].a / 255.0), SHADER_UNIFORM_VEC4)
+            rl.set_shader_value(planet_shader, u_fourth_layer, rl.Vector4(planet.colors[3].r / 255.0, planet.colors[3].g / 255.0, planet.colors[3].b / 255.0, planet.colors[3].a / 255.0), SHADER_UNIFORM_VEC4)
+            rl.set_shader_value(planet_shader, u_fifth_layer, rl.Vector4(planet.colors[4].r / 255.0, planet.colors[4].g / 255.0, planet.colors[4].b / 255.0, planet.colors[4].a / 255.0), SHADER_UNIFORM_VEC4)
             rl.draw_mesh(sphere, planet_mat, planet.transform) #ICI
         rl.end_mode_3d()
 
@@ -269,13 +263,13 @@ def main():
 
             eau_txt = str(eau) + "% H²0"
             water_width = rl.measure_text(eau_txt, 20)
-            rl.draw_text(eau_txt, int(2*cx / 2.294 - (water_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
+            rl.draw_text(eau_txt, int(2*cx / 2.294 - (water_width / 2)), int(2*cy / 1.58), 20, GREEN)
             oxy_txt = str(oxy) + "% de O²"
             oxy_width = rl.measure_text(oxy_txt, 20)
-            rl.draw_text(oxy_txt, int(2*cx / 2.006 - (oxy_width / 2)), int(2*cy / 1.38), 20, rl.GREEN)
+            rl.draw_text(oxy_txt, int(2*cx / 2.006 - (oxy_width / 2)), int(2*cy / 1.38), 20, GREEN)
             temp_txt = str(temp) + " C°"
             temp_width = rl.measure_text(temp_txt, 20)
-            rl.draw_text(temp_txt, int(2*cx / 1.778 - (temp_width / 2)), int(2*cy / 1.58), 20, rl.GREEN)
+            rl.draw_text(temp_txt, int(2*cx / 1.778 - (temp_width / 2)), int(2*cy / 1.58), 20, GREEN)
 
             # show the relative velocity between the player and the selected planet
             pos_diff = rl.vector3_subtract(planet.pos, player.pos)
