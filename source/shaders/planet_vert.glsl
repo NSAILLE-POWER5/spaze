@@ -20,8 +20,7 @@ out vec3 fragNormal;
 
 const float PI = 3.1415926535;
 
-void main()
-{
+void main() {
     // Calculate UV coordinates from normal
 	float u = atan(vertexNormal.x, vertexNormal.y)/(2*PI) + 0.5;
 	float v = asin(vertexNormal.z)/PI + 0.5;

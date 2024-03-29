@@ -26,6 +26,8 @@ uniform vec4 fifth_layer;
 
 const float PI = 3.1415926535;
 
+
+
 void main() {
     vec3 normal = normalize(unrotatedNormal);
 
@@ -43,14 +45,34 @@ void main() {
     else if (noise < 0.85) color.rgb = fourth_layer.rgb;
     else color.rgb = fifth_layer.rgb;
 
-    normal = normalize(fragNormal);
+	// Calculate lighting normal from height map
+	float fx0 = texture(texture0, vec2(u-0.01, v)).r, fx1 = texture(texture0, vec2(u+0.01, v)).r;
+	float fy0 = texture(texture0, vec2(u, v-0.01)).r, fy1 = texture(texture0, vec2(u, v+0.01)).r;
+
+	// the spacing of the grid in same units as the height map
+	float eps = 1.0;
+
+	// plug into the formulae above:
+	normal = normalize(fragNormal);
+
+	// create coordinate system
+	vec3 nt = vec3(normal.z, 0.0, -normal.x) / length(normal.xz);
+	vec3 nb = cross(normal, nt);
+
+	vec3 bumpy_normal = normalize(vec3((fx0 - fx1)/(2.0*eps), 1.0, (fy0 - fy1)/(2.0*eps)));
+	bumpy_normal = vec3(
+		bumpy_normal.x * nb.x + bumpy_normal.y * normal.x + bumpy_normal.z * nt.x,
+		bumpy_normal.x * nb.y + bumpy_normal.y * normal.y + bumpy_normal.z * nt.y,
+		bumpy_normal.x * nb.z + bumpy_normal.y * normal.z + bumpy_normal.z * nt.z
+	);
+
     vec3 viewD = normalize(viewPos - fragPosition);
 	vec3 sunDir = normalize(sunPos - fragPosition);
 
-    float lightDot = max(dot(normal, sunDir), 0.0);
+    float lightDot = max(dot(bumpy_normal, sunDir), 0.0);
 
     float specular = 0.0;
-	if (lightDot > 0.0) specular = pow(max(0.0, dot(viewD, reflect(-sunDir, normal))), 16.0); // 16 is the alpha value in blinn-phong model
+	if (lightDot > 0.0) specular = pow(max(0.0, dot(viewD, reflect(-sunDir, bumpy_normal))), 16.0); // 16 is the alpha value in blinn-phong model
 
     finalColor = (color*((colDiffuse + vec4(specular, specular, specular, 1.0))*vec4(lightDot, lightDot, lightDot, 1.0)));
     finalColor += color*(ambient/10.0)*colDiffuse;
