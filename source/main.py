@@ -136,6 +136,8 @@ def main():
 
     map = False
 
+    ite = 0
+
     isometric_cam = rl.Camera3D(
         Vector3(1200, 1200, 1200),
         Vector3(0, 0, 0),
@@ -147,6 +149,8 @@ def main():
     def CollisionCheck():
         for bodies in sys.bodies:
             if sqrt((player.pos.x - bodies.pos.x) ** 2 + (player.pos.y - bodies.pos.y) ** 2 + (player.pos.z - bodies.pos.z) ** 2) <= planet.radius:
+                paused = True
+                ite = 0
                 return False
         return True
 
@@ -376,10 +380,14 @@ def main():
             rl.draw_text("Paused", int(cx - pause_width/2), int(cy-10), 20, WHITE)
 
         if not CollisionCheck():
-            rl.draw_texture_pro(game_over, Rectangle(0, 0, 1280, 720),
-                                Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
-                                WHITE)
-            sys = system.new_sys()
+            if ite <= 300:
+                rl.draw_texture_pro(game_over, Rectangle(0, 0, 1280, 720),
+                                    Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
+                                    WHITE)
+            else:
+                sys = system.new_sys()
+                player.pos = Vector3(0, 0, -1300)
+                player.vel = Vector3(5, 0, 0)
         rl.end_drawing()
 
 
