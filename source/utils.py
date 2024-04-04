@@ -31,7 +31,7 @@ def get_projected_sphere_radius(cam: Camera3D, screen_height: float, center: Vec
 
 def randf() -> float:
     """Returns value between 0 (inclusive) and 1 (exclusive)"""
-    return get_random_value(0, 999999)/1000000
+    return get_random_value(0, 32767)/32767
 
 def randfr(min: float, max: float) -> float:
     """Returns a random floating point value between the mininum (inclusive) and the maximum (exclusive)"""

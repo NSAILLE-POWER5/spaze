@@ -11,6 +11,7 @@ from player import Player
 from system import Planet, System, New_system
 from colors import BLACK, RAYWHITE, WHITE, BLANK, RED, GREEN
 
+
 def copy_state(system: System, player: Player) -> tuple[System, Player]:
     """
     Creates a copy of the given system and player state (with all texture/graphics information shared),
@@ -43,11 +44,14 @@ def copy_state(system: System, player: Player) -> tuple[System, Player]:
 
     return system_copy, player_copy
 
+
 def main():
     rl.init_window(1280, 720, "Spaze")
     rl.set_target_fps(60)
     rl.set_window_state(rl.ConfigFlags.FLAG_WINDOW_RESIZABLE)
     rl.set_exit_key(rl.KeyboardKey.KEY_NULL)
+
+
 
     G = 5
     dt = 1 / 60
@@ -155,6 +159,7 @@ def main():
         return True
 
     while not rl.window_should_close():
+        
         inverted_render_rect = Rectangle(0, 0, rl.get_render_width(), -rl.get_render_height())
         if rl.is_window_resized():
             rl.unload_render_texture(target)
