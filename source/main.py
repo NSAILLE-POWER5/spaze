@@ -47,6 +47,7 @@ def copy_state(system: System, player: Player) -> tuple[System, Player]:
 
 def main():
     rl.init_window(1280, 720, "Spaze")
+    rl.init_audio_device
     rl.set_target_fps(60)
     rl.set_window_state(rl.ConfigFlags.FLAG_WINDOW_RESIZABLE)
     rl.set_exit_key(rl.KeyboardKey.KEY_NULL)
@@ -69,6 +70,10 @@ def main():
     u_third_layer = rl.get_shader_location(planet_shader, "third_layer")
     u_fourth_layer = rl.get_shader_location(planet_shader, "fourth_layer")
     u_fifth_layer = rl.get_shader_location(planet_shader, "fifth_layer")
+
+    back_sound = rl.load_music_stream("assets/musique_de_fond.mp3")
+    rl.play_music_stream(back_sound)
+
 
 
     rl.set_shader_value(planet_shader, u_ambient, Vector4(0.1, 0.1, 0.1, 1.0), SHADER_UNIFORM_VEC4)
@@ -141,6 +146,7 @@ def main():
     map = False
 
     ite = 0
+    dead = False
 
     isometric_cam = rl.Camera3D(
         Vector3(1200, 1200, 1200),
@@ -153,12 +159,13 @@ def main():
     def CollisionCheck():
         for bodies in sys.bodies:
             if sqrt((player.pos.x - bodies.pos.x) ** 2 + (player.pos.y - bodies.pos.y) ** 2 + (player.pos.z - bodies.pos.z) ** 2) <= planet.radius:
-                paused = True
-                ite = 0
-                return False
-        return True
+                return True
+        return False
+
+                
 
     while not rl.window_should_close():
+        rl.update_music_stream(back_sound)
         
         inverted_render_rect = Rectangle(0, 0, rl.get_render_width(), -rl.get_render_height())
         if rl.is_window_resized():
@@ -181,6 +188,11 @@ def main():
             player.handle_keyboard_input()
             player.integrate(dt)
             player.sync_camera()
+
+            if CollisionCheck():
+                ite = 0
+                dead = True
+                paused = True
 
             if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
                 closest, closest_idx = inf, None
@@ -384,16 +396,22 @@ def main():
             pause_width = rl.measure_text("Paused", 20)
             rl.draw_text("Paused", int(cx - pause_width/2), int(cy-10), 20, WHITE)
 
-        if not CollisionCheck():
-            if ite <= 300:
+        if dead:
+            if ite < 300:
                 rl.draw_texture_pro(game_over, Rectangle(0, 0, 1280, 720),
                                     Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
                                     WHITE)
+                ite += 1
             else:
                 sys = system.new_sys()
                 player.pos = Vector3(0, 0, -1300)
                 player.vel = Vector3(5, 0, 0)
+                dead = False
+                for planet in sys.planets():
+                    planet.orbit_angle = randf() * 2 * pi
+                sys.update(G, dt)
         rl.end_drawing()
+    rl.unload_music_stream(back_sound)
 
 
 if __name__ == '__main__':
