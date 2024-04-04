@@ -1,3 +1,5 @@
+#version 330
+
 // NOISE FUNCTION LICENSE:
 // Description : Array and textureless GLSL 3D simplex noise function.
 //      Author : Ian McEwan, Ashima Arts.
@@ -104,6 +106,9 @@ float ridge(vec3 p) {
 }
 
 // Input vertex attributes (from vertex shader)
+in vec3 fragPosition;
+in vec4 fragColor;
+in vec3 fragNormal;
 in vec3 unrotatedNormal;
 
 // Output fragment color
@@ -112,21 +117,16 @@ out vec4 finalColor;
 // Input uniforms
 uniform float time;
 
+const float PI = 3.1415926535;
+
 void main() {
     vec3 normal = normalize(unrotatedNormal);
 
-	// Calculate UV coordinates from normal
-	float u = atan(normal.x, normal.y)/(2*PI) + 0.5;
-	float v = asin(normal.z)/PI + 0.5;
-
-	// Normalized pixel coordinates (from 0 to 1)
-	vec2 uv = vec2(u, v);
-
-	float warp_x = snoise(vec3(uv*2.0, iTime/4.0));
-	float warp_y = snoise(vec3(uv*2.0, -iTime/4.0));
-	float noise = ridge(vec3(uv*4.0+vec2(warp_x, warp_y)*0.5, iTime));
+	float warp_x = snoise(normal+time/4.0);
+	float warp_y = snoise(normal-time/4.0);
+	float noise = ridge(normal + vec3(warp_x, warp_y, 0.0));
 	noise = smoothstep(0.5, 0.9, noise);
 
-	vec3 c = vec3(noise) + 0.5 + 0.5*cos(iTime+uv.xyx+vec3(0,2,4));
+	vec3 c = vec3(noise) + 0.5 + 0.25*cos(time+normal.xyx+vec3(0,2,4)) + 0.25*sin(time+normal.zxy+vec3(2, 1, 5));
 	finalColor = vec4(c, 1.0);
 }

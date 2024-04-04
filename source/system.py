@@ -6,9 +6,10 @@ import itertools
 
 import pyray as rl
 from pyray import Color, Vector2, Vector3
+from raylib.defines import PI
 from noise import generate_noise
 
-from utils import randfr, vec3_zero
+from utils import randf, randfr, vec3_zero
 
 class Planet:
     def __init__(self, orbit_radius: float, orbit_center: Self | None, G: float, surface_gravity: float, radius: float):
@@ -93,6 +94,13 @@ class Planet:
 class System:
     def __init__(self, sun: Planet):
         self.bodies = [sun]
+
+        angle = randf()*2*PI
+        r = float(randint(2800, 3200))
+        h = float(randint(-200, 200))
+        self.wormhole_size = 30
+        self.wormhole_pos = Vector3(cos(angle)*r, h, sin(angle)*r)
+        self.wormhole_transform = rl.matrix_multiply(rl.matrix_scale(self.wormhole_size, self.wormhole_size, self.wormhole_size), rl.matrix_translate(self.wormhole_pos.x, self.wormhole_pos.y, self.wormhole_pos.z))
     
     def add(self, planet: Planet):
         """
@@ -107,6 +115,13 @@ class System:
         Returns an iterator over only the system's planets (without the sun)
         """
         return itertools.islice(self.bodies, 1, None)
+    
+    def unload(self):
+        """
+        Unload every planet's textures
+        """
+        for planet in self.planets():
+            rl.unload_render_texture(planet.noise)
 
     def update(self, G: float, dt: float):
         """Updates the solar system to its next position"""

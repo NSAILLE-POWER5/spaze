@@ -26,14 +26,12 @@ uniform vec4 fifth_layer;
 
 const float PI = 3.1415926535;
 
-
-
 void main() {
     vec3 normal = normalize(unrotatedNormal);
 
 	// Calculate UV coordinates from normal
 	float u = atan(normal.x, normal.y)/(2*PI) + 0.5;
-	float v = asin(normal.z)/PI + 0.5;
+	float v = (asin(normal.z)/PI + 0.5);
 
     // Texel color fetching from texture sampler
     float noise = texture(texture0, vec2(u, v)).r;

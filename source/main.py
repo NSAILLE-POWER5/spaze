@@ -53,7 +53,6 @@ def main():
     rl.set_exit_key(rl.KeyboardKey.KEY_NULL)
 
 
-
     G = 5
     dt = 1 / 60
 
@@ -74,13 +73,17 @@ def main():
     back_sound = rl.load_music_stream("assets/musique_de_fond.mp3")
     rl.play_music_stream(back_sound)
 
-
-
     rl.set_shader_value(planet_shader, u_ambient, Vector4(0.1, 0.1, 0.1, 1.0), SHADER_UNIFORM_VEC4)
     planet_shader.locs[rl.ShaderLocationIndex.SHADER_LOC_VECTOR_VIEW] = u_view_pos
 
     planet_mat = rl.load_material_default()
     planet_mat.shader = planet_shader
+
+    wormhole_shader = rl.load_shader("shaders/planet_vert.glsl", "shaders/wormhole_frag.glsl")
+    u_time = rl.get_shader_location(wormhole_shader, "time")
+
+    wormhole_mat = rl.load_material_default()
+    wormhole_mat.shader = wormhole_shader
 
     sun_shader = rl.load_shader("shaders/sun_vert.glsl", "shaders/sun_frag.glsl")
     sun_u_view_pos = rl.get_shader_location(sun_shader, "viewPos")
@@ -96,7 +99,6 @@ def main():
 
     system = New_system()
     sys = system.new_sys()
-
     # initialize positions and transforms since the game is paused by default
     # and randomize orbit angles
     for planet in sys.planets():
@@ -116,6 +118,18 @@ def main():
         rl.quaternion_from_euler(0, pi, 0),
         rl.quaternion_from_euler(0, pi, 0)
     )
+
+    def reset_system():
+        nonlocal sys
+
+        player.pos = Vector3(0, 0, -1300)
+        player.vel = Vector3(5, 0, 0)
+
+        sys.unload()
+        sys = system.new_sys()
+        # randomize orbit angles
+        for planet in sys.planets():
+            planet.orbit_angle = randf() * 2 * pi
 
     sky_model = rl.gen_mesh_sphere(1, 4, 4)
 
@@ -161,8 +175,6 @@ def main():
             if sqrt((player.pos.x - bodies.pos.x) ** 2 + (player.pos.y - bodies.pos.y) ** 2 + (player.pos.z - bodies.pos.z) ** 2) <= planet.radius:
                 return True
         return False
-
-                
 
     while not rl.window_should_close():
         rl.update_music_stream(back_sound)
@@ -224,12 +236,17 @@ def main():
                 rl.disable_cursor()
                 paused = False
 
+        if rl.vector_3distance_sqr(player.pos, sys.wormhole_pos) < sys.wormhole_size**2:
+            # wormhole touched
+            reset_system()
+
         rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, SHADER_UNIFORM_VEC3)
         rl.set_shader_value(planet_shader, u_sun_pos, sys.bodies[0].pos, SHADER_ATTRIB_VEC3)
 
         rl.set_shader_value(sun_shader, sun_u_view_pos, player.camera.position, SHADER_UNIFORM_VEC3)
         rl.set_shader_value(sun_shader, sun_u_time, ffi.new("float *", rl.get_time()), SHADER_UNIFORM_FLOAT)
 
+        rl.set_shader_value(wormhole_shader, u_time, ffi.new("float *", rl.get_time()), SHADER_UNIFORM_FLOAT)
 
         rl.begin_texture_mode(target)
         rl.clear_background(BLACK)
@@ -250,6 +267,10 @@ def main():
             rl.set_shader_value(planet_shader, u_fourth_layer, rl.Vector4(planet.colors[3].r / 255.0, planet.colors[3].g / 255.0, planet.colors[3].b / 255.0, planet.colors[3].a / 255.0), SHADER_UNIFORM_VEC4)
             rl.set_shader_value(planet_shader, u_fifth_layer, rl.Vector4(planet.colors[4].r / 255.0, planet.colors[4].g / 255.0, planet.colors[4].b / 255.0, planet.colors[4].a / 255.0), SHADER_UNIFORM_VEC4)
             rl.draw_mesh(sphere, planet_mat, planet.transform) #ICI
+
+        # draw wormhole
+        rl.draw_mesh(sphere, wormhole_mat, sys.wormhole_transform)
+
         rl.end_mode_3d()
 
         # draw UI
@@ -354,6 +375,7 @@ def main():
                     rl.draw_circle_3d(body.orbit_center.pos, body.orbit_radius, Vector3(1, 0, 0), 90, rl.fade(body.colors[0], 0.5))
 
                 rl.draw_sphere(body.pos, body.radius, body.colors[0])
+            rl.draw_mesh(sphere, wormhole_mat, sys.wormhole_transform)
 
             system_copy, player_copy = copy_state(sys, player)
 
@@ -403,13 +425,8 @@ def main():
                                     WHITE)
                 ite += 1
             else:
-                sys = system.new_sys()
-                player.pos = Vector3(0, 0, -1300)
-                player.vel = Vector3(5, 0, 0)
+                reset_system()
                 dead = False
-                for planet in sys.planets():
-                    planet.orbit_angle = randf() * 2 * pi
-                sys.update(G, dt)
         rl.end_drawing()
     rl.unload_music_stream(back_sound)
 
