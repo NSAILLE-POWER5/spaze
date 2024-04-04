@@ -162,6 +162,8 @@ def main():
     ite = 0
     dead = False
 
+    unpaused_time = 0.0
+
     isometric_cam = rl.Camera3D(
         Vector3(1200, 1200, 1200),
         Vector3(0, 0, 0),
@@ -193,6 +195,8 @@ def main():
             map = not map
 
         if not paused:
+            unpaused_time += dt
+
             sys.update(G, dt)
             player.apply_gravity(G, dt, sys.bodies)
             if not map:
@@ -244,9 +248,9 @@ def main():
         rl.set_shader_value(planet_shader, u_sun_pos, sys.bodies[0].pos, SHADER_ATTRIB_VEC3)
 
         rl.set_shader_value(sun_shader, sun_u_view_pos, player.camera.position, SHADER_UNIFORM_VEC3)
-        rl.set_shader_value(sun_shader, sun_u_time, ffi.new("float *", rl.get_time()), SHADER_UNIFORM_FLOAT)
+        rl.set_shader_value(sun_shader, sun_u_time, ffi.new("float *", unpaused_time), SHADER_UNIFORM_FLOAT)
 
-        rl.set_shader_value(wormhole_shader, u_time, ffi.new("float *", rl.get_time()), SHADER_UNIFORM_FLOAT)
+        rl.set_shader_value(wormhole_shader, u_time, ffi.new("float *", unpaused_time), SHADER_UNIFORM_FLOAT)
 
         rl.begin_texture_mode(target)
         rl.clear_background(BLACK)

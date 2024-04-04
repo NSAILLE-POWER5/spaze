@@ -15,6 +15,9 @@ class Planet:
     def __init__(self, orbit_radius: float, orbit_center: Self | None, G: float, surface_gravity: float, radius: float):
         self.pos = vec3_zero()
         self.vel = vec3_zero()
+        self.rotation = 0.0
+        self.rotation_speed = randfr(0.1, 0.9)**2 # [0; 1] range is squared -> make rotation slower in general
+
         self.type = rl.get_random_value(0, 3)
         self.orbit_radius = orbit_radius
         self.orbit_angle = 0.0
@@ -38,6 +41,8 @@ class Planet:
 
     def orbit(self, G: float, dt: float):
         """Simulate perfectly circular orbit with keplerian mechanics"""
+        self.rotation += dt*self.rotation_speed
+
         if self.orbit_center == None:
             return
 
@@ -71,7 +76,7 @@ class Planet:
         radius = self.radius
         pos = self.pos
         self.transform = rl.matrix_scale(radius, radius, radius)
-        self.transform = rl.matrix_multiply(self.transform, rl.matrix_rotate_xyz(Vector3(pi/2, 0.0, rl.get_time()/10.0)))
+        self.transform = rl.matrix_multiply(self.transform, rl.matrix_rotate_xyz(Vector3(pi/2, 0.0, self.rotation)))
         self.transform = rl.matrix_multiply(self.transform, rl.matrix_translate(pos.x, pos.y, pos.z))
 
     def gen_layer(self):
@@ -93,6 +98,7 @@ class Planet:
         
 class System:
     def __init__(self, sun: Planet):
+        sun.rotation_speed = randfr(0.02, 0.2)
         self.bodies = [sun]
 
         angle = randf()*2*PI
