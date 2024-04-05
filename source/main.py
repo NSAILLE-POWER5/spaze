@@ -2,15 +2,15 @@ from math import inf, pi, log1p, sqrt
 from copy import copy
 
 import pyray as rl
-from pyray import Color, MaterialMapIndex, Rectangle, ShaderLocationIndex, Vector2, Vector3, Vector4
-from raylib import SHADER_ATTRIB_VEC3, SHADER_UNIFORM_VEC3, SHADER_UNIFORM_VEC4, ffi, SHADER_UNIFORM_FLOAT
+from pyray import Rectangle, Vector2, Vector3
 
 from icosphere import gen_icosphere
+from shaders import PlanetMaterial, SunMaterial, WormholeMaterial
+from sky import Sky
 from utils import get_projected_sphere_radius, randf
 from player import Player
-from system import Planet, System, New_system
-from colors import BLACK, RAYWHITE, WHITE, BLANK, RED, GREEN
-
+from system import System, New_system
+from colors import BLACK, WHITE, RED, GREEN
 
 def copy_state(system: System, player: Player) -> tuple[System, Player]:
     """
@@ -44,14 +44,12 @@ def copy_state(system: System, player: Player) -> tuple[System, Player]:
 
     return system_copy, player_copy
 
-
 def main():
     rl.init_window(1280, 720, "Spaze")
     rl.init_audio_device
     rl.set_target_fps(60)
     rl.set_window_state(rl.ConfigFlags.FLAG_WINDOW_RESIZABLE)
     rl.set_exit_key(rl.KeyboardKey.KEY_NULL)
-
 
     G = 5
     dt = 1 / 60
@@ -60,42 +58,14 @@ def main():
 
     game_over = rl.load_texture("assets/game over.png")
 
-    planet_shader = rl.load_shader("shaders/planet_vert.glsl", "shaders/planet_frag.glsl")
-    u_ambient = rl.get_shader_location(planet_shader, "ambient")
-    u_sun_pos = rl.get_shader_location(planet_shader, "sunPos")
-    u_view_pos = rl.get_shader_location(planet_shader, "viewPos")
-    u_first_layer = rl.get_shader_location(planet_shader, "first_layer")
-    u_second_layer = rl.get_shader_location(planet_shader, "second_layer")
-    u_third_layer = rl.get_shader_location(planet_shader, "third_layer")
-    u_fourth_layer = rl.get_shader_location(planet_shader, "fourth_layer")
-    u_fifth_layer = rl.get_shader_location(planet_shader, "fifth_layer")
-
     back_sound = rl.load_music_stream("assets/musique_de_fond.mp3")
     rl.play_music_stream(back_sound)
 
-    rl.set_shader_value(planet_shader, u_ambient, Vector4(0.1, 0.1, 0.1, 1.0), SHADER_UNIFORM_VEC4)
-    planet_shader.locs[rl.ShaderLocationIndex.SHADER_LOC_VECTOR_VIEW] = u_view_pos
+    planet_mat = PlanetMaterial()
+    wormhole_mat = WormholeMaterial()
+    sun_mat = SunMaterial()
 
-    planet_mat = rl.load_material_default()
-    planet_mat.shader = planet_shader
-
-    wormhole_shader = rl.load_shader("shaders/planet_vert.glsl", "shaders/wormhole_frag.glsl")
-    u_time = rl.get_shader_location(wormhole_shader, "time")
-
-    wormhole_mat = rl.load_material_default()
-    wormhole_mat.shader = wormhole_shader
-
-    sun_shader = rl.load_shader("shaders/sun_vert.glsl", "shaders/sun_frag.glsl")
-    sun_u_view_pos = rl.get_shader_location(sun_shader, "viewPos")
-    sun_u_time = rl.get_shader_location(sun_shader, "time")
-
-    sun_texture = rl.load_texture("assets/sun.png")
     vaisseau = rl.load_texture("assets/cockpit.png")
-
-    sun_mat = rl.load_material_default()
-    sun_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = sun_texture
-    sun_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].color = Color(255, 210, 0, 255)
-    sun_mat.shader = sun_shader
 
     system = New_system()
     sys = system.new_sys()
@@ -119,6 +89,8 @@ def main():
         rl.quaternion_from_euler(0, pi, 0)
     )
 
+    sky = Sky()
+
     def reset_system():
         nonlocal sys
 
@@ -130,25 +102,6 @@ def main():
         # randomize orbit angles
         for planet in sys.planets():
             planet.orbit_angle = randf() * 2 * pi
-
-    sky_model = rl.gen_mesh_sphere(1, 4, 4)
-
-    # allocate an array of 1000 matrices
-    sky_transforms = ffi.cast("Matrix *", rl.mem_alloc(1000*ffi.sizeof("Matrix")))
-    for i in range(1000):
-        # bundle points closer to the horizon line
-        y = (randf()*2-1)*(randf()*2-1)*(randf()*2-1)
-
-        v = Vector3(randf()*2 - 1, y, randf()*2 - 1)
-        v = rl.vector3_scale(rl.vector3_normalize(v), 500)
-        scale = randf() + 0.5
-        sky_transforms[i] = rl.matrix_multiply(rl.matrix_scale(scale, scale, scale), rl.matrix_translate(v.x, v.y, v.z))
-
-    sky_shader = rl.load_shader("shaders/sky_vert.glsl", "shaders/sky_frag.glsl")
-    sky_shader.locs[ShaderLocationIndex.SHADER_LOC_MATRIX_MODEL] = rl.get_shader_location_attrib(sky_shader, "matModel")
-
-    sky_mat = rl.load_material_default()
-    sky_mat.shader = sky_shader
 
     target = rl.load_render_texture(1280, 720)
     rl.set_texture_wrap(target.texture, rl.TextureWrap.TEXTURE_WRAP_CLAMP)
@@ -244,36 +197,24 @@ def main():
             # wormhole touched
             reset_system()
 
-        rl.set_shader_value(planet_shader, u_view_pos, player.camera.position, SHADER_UNIFORM_VEC3)
-        rl.set_shader_value(planet_shader, u_sun_pos, sys.bodies[0].pos, SHADER_ATTRIB_VEC3)
-
-        rl.set_shader_value(sun_shader, sun_u_view_pos, player.camera.position, SHADER_UNIFORM_VEC3)
-        rl.set_shader_value(sun_shader, sun_u_time, ffi.new("float *", unpaused_time), SHADER_UNIFORM_FLOAT)
-
-        rl.set_shader_value(wormhole_shader, u_time, ffi.new("float *", unpaused_time), SHADER_UNIFORM_FLOAT)
+        planet_mat.set_global_values(player, sys)
+        sun_mat.set_global_values(player, unpaused_time)
+        wormhole_mat.set_global_values(unpaused_time)
 
         rl.begin_texture_mode(target)
         rl.clear_background(BLACK)
 
         rl.begin_mode_3d(player.camera)
 
-        rl.rl_disable_depth_mask()
-        rl.draw_mesh_instanced(sky_model, sky_mat, sky_transforms, 1000)
-        rl.rl_enable_depth_mask()
+        sky.draw()
 
-        rl.draw_mesh(sphere, sun_mat, sys.bodies[0].transform)
-
+        rl.draw_mesh(sphere, sun_mat.mat, sys.bodies[0].transform)
         for planet in sys.planets():
-            planet_mat.maps[MaterialMapIndex.MATERIAL_MAP_ALBEDO].texture = planet.noise.texture
-            rl.set_shader_value(planet_shader, u_first_layer, rl.Vector4(planet.colors[0].r / 255.0, planet.colors[0].g / 255.0, planet.colors[0].b / 255.0, planet.colors[0].a / 255.0), SHADER_UNIFORM_VEC4)
-            rl.set_shader_value(planet_shader, u_second_layer, rl.Vector4(planet.colors[1].r / 255.0, planet.colors[1].g / 255.0, planet.colors[1].b / 255.0, planet.colors[1].a / 255.0), SHADER_UNIFORM_VEC4)
-            rl.set_shader_value(planet_shader, u_third_layer, rl.Vector4(planet.colors[2].r / 255.0, planet.colors[2].g / 255.0, planet.colors[2].b / 255.0, planet.colors[2].a / 255.0), SHADER_UNIFORM_VEC4)
-            rl.set_shader_value(planet_shader, u_fourth_layer, rl.Vector4(planet.colors[3].r / 255.0, planet.colors[3].g / 255.0, planet.colors[3].b / 255.0, planet.colors[3].a / 255.0), SHADER_UNIFORM_VEC4)
-            rl.set_shader_value(planet_shader, u_fifth_layer, rl.Vector4(planet.colors[4].r / 255.0, planet.colors[4].g / 255.0, planet.colors[4].b / 255.0, planet.colors[4].a / 255.0), SHADER_UNIFORM_VEC4)
-            rl.draw_mesh(sphere, planet_mat, planet.transform) #ICI
+            planet_mat.set_planet_values(planet)
+            rl.draw_mesh(sphere, planet_mat.mat, planet.transform) #ICI
 
         # draw wormhole
-        rl.draw_mesh(sphere, wormhole_mat, sys.wormhole_transform)
+        rl.draw_mesh(sphere, wormhole_mat.mat, sys.wormhole_transform)
 
         rl.end_mode_3d()
 
@@ -379,7 +320,7 @@ def main():
                     rl.draw_circle_3d(body.orbit_center.pos, body.orbit_radius, Vector3(1, 0, 0), 90, rl.fade(body.colors[0], 0.5))
 
                 rl.draw_sphere(body.pos, body.radius, body.colors[0])
-            rl.draw_mesh(sphere, wormhole_mat, sys.wormhole_transform)
+            rl.draw_mesh(sphere, wormhole_mat.mat, sys.wormhole_transform)
 
             system_copy, player_copy = copy_state(sys, player)
 
