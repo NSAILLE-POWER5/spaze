@@ -338,6 +338,9 @@ def main():
                 for body in system_copy.bodies:
                     if rl.vector_3distance_sqr(player_copy.pos, body.pos) < body.radius*body.radius:
                         stop = True
+                        break
+                if stop:
+                    break
 
                 trace.append(player_copy.pos)
 
