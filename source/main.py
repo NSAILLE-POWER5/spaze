@@ -375,6 +375,7 @@ def main():
             else:
                 reset_system()
                 dead = False
+
         rl.end_drawing()
     rl.unload_music_stream(back_sound)
 

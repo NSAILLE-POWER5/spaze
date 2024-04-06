@@ -35,7 +35,7 @@ void main() {
 
     // Texel color fetching from texture sampler
     float noise = texture(texture0, vec2(u, v)).r;
-    
+
     vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
     if (noise < 0.4) color.rgb = vec3(first_layer.r, first_layer.g, first_layer.b);
     else if (noise < 0.5) color.rgb = second_layer.rgb;
