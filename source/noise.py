@@ -1,7 +1,8 @@
 from pyray import RenderTexture, Vector2, Vector3
 import pyray as rl
 from raylib import ffi
-from raylib.defines import RL_TRIANGLES
+
+from utils import draw_rectangle_tex_coords
 
 class NoiseShader:
     def __init__(self):
@@ -39,25 +40,7 @@ def generate_noise(size: tuple[int, int], scale: Vector3, pos: Vector2, octaves:
     rl.begin_texture_mode(render)
     rl.begin_shader_mode(noise_shader.shader)
 
-    rl.rl_begin(RL_TRIANGLES)
-
-    rl.rl_color4f(1.0, 1.0, 1.0, 1.0);
-
-    rl.rl_tex_coord2f(0.0, 0.0)
-    rl.rl_vertex2f(0.0, 0.0)
-    rl.rl_tex_coord2f(0.0, 1.0)
-    rl.rl_vertex2f(0.0, float(size[1]))
-    rl.rl_tex_coord2f(1.0, 0.0)
-    rl.rl_vertex2f(float(size[0]), 0.0)
-
-    rl.rl_tex_coord2f(1.0, 0.0)
-    rl.rl_vertex2f(float(size[0]), 0.0)
-    rl.rl_tex_coord2f(0.0, 1.0)
-    rl.rl_vertex2f(0.0, float(size[1]))
-    rl.rl_tex_coord2f(1.0, 1.0)
-    rl.rl_vertex2f(float(size[0]), float(size[1]))
-
-    rl.rl_end()
+    draw_rectangle_tex_coords(0, 0, size[0], size[1])
 
     rl.end_shader_mode()
     rl.end_texture_mode()

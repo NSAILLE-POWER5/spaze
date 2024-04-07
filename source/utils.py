@@ -1,6 +1,9 @@
 from math import tan, radians, sqrt
 from typing import TypeAlias
+
 from pyray import Vector3, Camera3D, Vector4, vector_3distance, get_random_value, remap
+import pyray as rl
+from raylib.defines import RL_TRIANGLES
 
 Quat: TypeAlias = Vector4
 
@@ -36,3 +39,25 @@ def randf() -> float:
 def randfr(min: float, max: float) -> float:
     """Returns a random floating point value between the mininum (inclusive) and the maximum (exclusive)"""
     return remap(randf(), 0.0, 1.0, min, max)
+
+def draw_rectangle_tex_coords(x: float, y: float, w: float, h: float):
+    """Draw a rectangle at the given coordinates with uvs (useful for 2d shaders)"""
+    rl.rl_begin(RL_TRIANGLES)
+
+    rl.rl_color4f(1.0, 1.0, 1.0, 1.0);
+
+    rl.rl_tex_coord2f(0.0, 0.0)
+    rl.rl_vertex2f(x, y)
+    rl.rl_tex_coord2f(0.0, 1.0)
+    rl.rl_vertex2f(x, y + h)
+    rl.rl_tex_coord2f(1.0, 0.0)
+    rl.rl_vertex2f(x + w, y)
+
+    rl.rl_tex_coord2f(1.0, 0.0)
+    rl.rl_vertex2f(x + w, y)
+    rl.rl_tex_coord2f(0.0, 1.0)
+    rl.rl_vertex2f(x, y + h)
+    rl.rl_tex_coord2f(1.0, 1.0)
+    rl.rl_vertex2f(x + w, y + h)
+
+    rl.rl_end()

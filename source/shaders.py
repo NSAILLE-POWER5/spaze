@@ -3,6 +3,7 @@ from raylib import MATERIAL_MAP_ALBEDO, SHADER_ATTRIB_VEC3, SHADER_LOC_MATRIX_MO
 
 from player import Player
 from system import Planet, System
+from utils import draw_rectangle_tex_coords
 
 class PlanetMaterial:
     def __init__(self):
@@ -70,3 +71,17 @@ class SkyMaterial:
         self.mat = rl.load_material_default()
         self.mat.shader = self.shader
 
+class WormholeEffect:
+    """Effect when you enter the wormhole"""
+
+    def __init__(self):
+        self.shader = rl.load_shader("", "shaders/wormhole_effect.glsl")
+        self.u_time = rl.get_shader_location(self.shader, "time")
+
+    def set_global_values(self, time: float):
+        rl.set_shader_value(self.shader, self.u_time, ffi.new("float *", time), SHADER_UNIFORM_FLOAT)
+
+    def draw(self):
+        rl.begin_shader_mode(self.shader)
+        draw_rectangle_tex_coords(0, 0, rl.get_render_width(), rl.get_render_height())
+        rl.end_shader_mode()

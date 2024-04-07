@@ -5,7 +5,7 @@ import pyray as rl
 from pyray import Rectangle, Vector2, Vector3
 
 from icosphere import gen_icosphere
-from shaders import PlanetMaterial, SunMaterial, WormholeMaterial
+from shaders import PlanetMaterial, SunMaterial, WormholeEffect, WormholeMaterial
 from sky import Sky
 from utils import get_projected_sphere_radius, randf
 from player import Player
@@ -63,6 +63,7 @@ def main():
 
     planet_mat = PlanetMaterial()
     wormhole_mat = WormholeMaterial()
+    wormhole_effect = WormholeEffect()
     sun_mat = SunMaterial()
 
     vaisseau = rl.load_texture("assets/cockpit.png")
@@ -117,6 +118,9 @@ def main():
 
     unpaused_time = 0.0
 
+    wormholing = False
+    wormhole_time = 0.0
+
     isometric_cam = rl.Camera3D(
         Vector3(1200, 1200, 1200),
         Vector3(0, 0, 0),
@@ -125,7 +129,7 @@ def main():
         rl.CameraProjection.CAMERA_ORTHOGRAPHIC
     )
 
-    def CollisionCheck():
+    def collision_check():
         for bodies in sys.bodies:
             if sqrt((player.pos.x - bodies.pos.x) ** 2 + (player.pos.y - bodies.pos.y) ** 2 + (player.pos.z - bodies.pos.z) ** 2) <= planet.radius:
                 return True
@@ -158,11 +162,6 @@ def main():
             player.integrate(dt)
             player.sync_camera()
 
-            if CollisionCheck():
-                ite = 0
-                dead = True
-                paused = True
-
             if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
                 closest, closest_idx = inf, None
 
@@ -193,9 +192,15 @@ def main():
                 rl.disable_cursor()
                 paused = False
 
-        if rl.vector_3distance_sqr(player.pos, sys.wormhole_pos) < sys.wormhole_size**2:
-            # wormhole touched
-            reset_system()
+        if not dead and collision_check():
+            ite = 0
+            dead = True
+            paused = True
+
+        # wormhole touched
+        if not wormholing and rl.vector_3distance_sqr(player.pos, sys.wormhole_pos) < sys.wormhole_size**2:
+            wormholing = True
+            wormhole_time = 0.0
 
         planet_mat.set_global_values(player, sys)
         sun_mat.set_global_values(player, unpaused_time)
@@ -374,7 +379,20 @@ def main():
                 ite += 1
             else:
                 reset_system()
+                paused = False
                 dead = False
+        
+        if wormholing:
+            wormhole_effect.set_global_values(wormhole_time)
+            wormhole_effect.draw()
+
+            wormhole_time += dt
+
+            # effect finished
+            if wormhole_time >= 8.0:
+                wormhole_time = 0.0
+                wormholing = False
+                reset_system()
 
         rl.end_drawing()
     rl.unload_music_stream(back_sound)
