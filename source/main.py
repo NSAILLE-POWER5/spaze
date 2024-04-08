@@ -5,6 +5,7 @@ import pyray as rl
 from pyray import Rectangle, Vector2, Vector3
 
 from icosphere import gen_icosphere
+from map import Map
 from shaders import PlanetMaterial, SunMaterial, WormholeEffect, WormholeMaterial
 from sky import Sky
 from utils import get_projected_sphere_radius, randf
@@ -12,37 +13,6 @@ from player import Player
 from system import System, New_system
 from colors import BLACK, WHITE, RED, GREEN
 
-def copy_state(system: System, player: Player) -> tuple[System, Player]:
-    """
-    Creates a copy of the given system and player state (with all texture/graphics information shared),
-    to allow simulating them at a different speed than the real-time simulation.
-    """
-    system_copy = System(system.bodies[0])
-
-    body_indices = { body: i for i, body in enumerate(system.bodies) }
-    for planet in system.planets():
-        p = copy(planet)
-        p.orbit_center = None if planet.orbit_center == None else system_copy.bodies[body_indices[planet.orbit_center]]
-        p.orbit_radius = planet.orbit_radius
-        p.mass = planet.mass
-        p.radius = planet.radius
-        p.orbit_angle = planet.orbit_angle
-        p.pos = planet.pos
-        p.colors = planet.colors
-        p.type = planet.type
-        p.vel = planet.vel
-
-        system_copy.add(p)
-
-    player_copy = Player(
-        player.pos,
-        player.vel,
-        player.camera,
-        player.rotation,
-        player.target_rotation
-    )
-
-    return system_copy, player_copy
 
 def main():
     rl.init_window(1280, 720, "Spaze")
@@ -92,11 +62,16 @@ def main():
 
     sky = Sky()
 
+    selected_planet = -1
+
     def reset_system():
         nonlocal sys
+        nonlocal selected_planet
 
         player.pos = Vector3(0, 0, -1300)
         player.vel = Vector3(5, 0, 0)
+
+        selected_planet = -1
 
         sys.unload()
         sys = system.new_sys()
@@ -107,11 +82,9 @@ def main():
     target = rl.load_render_texture(1280, 720)
     rl.set_texture_wrap(target.texture, rl.TextureWrap.TEXTURE_WRAP_CLAMP)
 
-    selected_planet = -1
-
     paused = True
 
-    map = False
+    map = Map()
 
     ite = 0
     dead = False
@@ -120,14 +93,6 @@ def main():
 
     wormholing = False
     wormhole_time = 0.0
-
-    isometric_cam = rl.Camera3D(
-        Vector3(1200, 1200, 1200),
-        Vector3(0, 0, 0),
-        Vector3(0, 1, 0),
-        1200*2,
-        rl.CameraProjection.CAMERA_ORTHOGRAPHIC
-    )
 
     def collision_check():
         for bodies in sys.bodies:
@@ -149,14 +114,14 @@ def main():
         cy = rl.get_render_height()/2
 
         if rl.is_key_pressed(rl.KeyboardKey.KEY_SEMICOLON):
-            map = not map
+            map.toggle()
 
         if not paused:
             unpaused_time += dt
 
             sys.update(G, dt)
             player.apply_gravity(G, dt, sys.bodies)
-            if not map:
+            if not map.enabled:
                 player.handle_mouse_input(dt)
             player.handle_keyboard_input()
             player.integrate(dt)
@@ -312,60 +277,13 @@ def main():
         # draw target to screen
         rl.begin_drawing()
 
-        if not map:
-            rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
+        if map.enabled:
+            map.update(G, player, sys)
+            map.draw(player, sys, sphere, wormhole_mat)
         else:
-            rl.update_camera(isometric_cam, rl.CameraMode.CAMERA_THIRD_PERSON)
-
-            rl.begin_mode_3d(isometric_cam)
-
-            rl.clear_background(BLACK)
-            for body in sys.bodies:
-                if body.orbit_center != None:
-                    rl.draw_circle_3d(body.orbit_center.pos, body.orbit_radius, Vector3(1, 0, 0), 90, rl.fade(body.colors[0], 0.5))
-
-                rl.draw_sphere(body.pos, body.radius, body.colors[0])
-            rl.draw_mesh(sphere, wormhole_mat.mat, sys.wormhole_transform)
-
-            system_copy, player_copy = copy_state(sys, player)
-
-            simul_dt = 1/2
-            trace = [player.pos]
-
-            # simulate 50 seconds in advance
-            for _ in range(100):
-                system_copy.update(G, simul_dt)
-                player_copy.apply_gravity(G, simul_dt, system_copy.bodies)
-                player_copy.integrate(simul_dt)
-
-                # check for collision
-                stop = False
-                for body in system_copy.bodies:
-                    if rl.vector_3distance_sqr(player_copy.pos, body.pos) < body.radius*body.radius:
-                        stop = True
-                        break
-                if stop:
-                    break
-
-                trace.append(player_copy.pos)
-
-
-            for i in range(1, len(trace)):
-                prev = trace[i-1]
-                new = trace[i]
-                rl.draw_line_3d(prev, new, WHITE)
-
-            if len(trace) < 101:
-                l = len(trace)-1
-                rl.draw_sphere(trace[l], 10, RED)
-
-            rl.draw_cube(rl.vector3_add(player.pos, Vector3(5, 5, 5)), 10, 10, 10, WHITE)
-
-
-            rl.end_mode_3d()
+            rl.draw_texture_rec(target.texture, inverted_render_rect, Vector2(0, 0), WHITE)
 
         if paused:
-            # rl.draw_rectangle(0, 0, rl.get_render_width(), rl.get_render_height(), Color(0, 0, 0, 28))
             rl.draw_rectangle_rounded(Rectangle(cx - 50, cy - 15, 100, 30), 0.5, 16, BLACK)
             rl.draw_rectangle_rounded_lines(Rectangle(cx - 50, cy - 15, 100, 30), 0.5, 16, 3, WHITE)
             pause_width = rl.measure_text("Paused", 20)
