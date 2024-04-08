@@ -1,5 +1,4 @@
-from math import inf, pi, log1p, sqrt
-from copy import copy
+from math import inf, pi, log1p
 
 import pyray as rl
 from pyray import Rectangle, Vector2, Vector3
@@ -10,9 +9,28 @@ from shaders import PlanetMaterial, SunMaterial, WormholeEffect, WormholeMateria
 from sky import Sky
 from utils import get_projected_sphere_radius, randf
 from player import Player
-from system import System, New_system
-from colors import BLACK, WHITE, RED, GREEN
+from system import Planet, System, New_system
+from colors import BLACK, WHITE, GREEN
 
+def get_viewed_planet(player: Player, sys: System) -> Planet | None:
+    cx = rl.get_render_width()/2
+    cy = rl.get_render_height()/2
+    ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
+
+    closest_dist, closest = inf, None
+    for planet in sys.bodies:
+        # skip if we're looking away from the planet
+        player_to_planet = rl.vector3_subtract(planet.pos, player.pos)
+        if rl.vector_3dot_product(ray.direction, player_to_planet) < 0:
+            continue
+
+        coll = rl.get_ray_collision_sphere(ray, planet.pos, planet.radius)
+        if coll.hit:
+            dist = rl.vector3_length_sqr(player_to_planet)
+            if dist < closest_dist:
+                closest_dist = dist
+                closest = planet
+    return closest
 
 def main():
     rl.init_window(1280, 720, "Spaze")
@@ -62,7 +80,7 @@ def main():
 
     sky = Sky()
 
-    selected_planet = -1
+    selected_planet = None
 
     def reset_system():
         nonlocal sys
@@ -71,7 +89,7 @@ def main():
         player.pos = Vector3(0, 0, -1300)
         player.vel = Vector3(5, 0, 0)
 
-        selected_planet = -1
+        selected_planet = None
 
         sys.unload()
         sys = system.new_sys()
@@ -95,8 +113,8 @@ def main():
     wormhole_time = 0.0
 
     def collision_check():
-        for bodies in sys.bodies:
-            if sqrt((player.pos.x - bodies.pos.x) ** 2 + (player.pos.y - bodies.pos.y) ** 2 + (player.pos.z - bodies.pos.z) ** 2) <= planet.radius:
+        for planet in sys.bodies:
+            if rl.vector_3distance_sqr(player.pos, planet.pos) <= planet.radius**2:
                 return True
         return False
 
@@ -128,26 +146,11 @@ def main():
             player.sync_camera()
 
             if rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
-                closest, closest_idx = inf, None
-
-                ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
-                for i, planet in enumerate(sys.bodies):
-                    # skip if we're looking away from the planet
-                    player_to_planet = rl.vector3_subtract(planet.pos, player.pos)
-                    if rl.vector_3dot_product(ray.direction, player_to_planet) < 0:
-                        continue
-
-                    coll = rl.get_ray_collision_sphere(ray, planet.pos, planet.radius)
-                    if coll.hit:
-                        dist = rl.vector3_length_sqr(player_to_planet)
-                        if dist < closest:
-                            closest = dist
-                            closest_idx = i
-
-                if closest_idx == selected_planet:
-                    selected_planet = -1
-                elif closest_idx != None:
-                    selected_planet = closest_idx
+                viewed_planet = get_viewed_planet(player, sys)
+                if viewed_planet == selected_planet:
+                    selected_planet = None
+                elif viewed_planet != None:
+                    selected_planet = viewed_planet
 
             if rl.is_key_pressed(rl.KeyboardKey.KEY_ESCAPE):
                 rl.enable_cursor()
@@ -195,16 +198,14 @@ def main():
                             Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
                             WHITE)
 
-        eau = 0
-        oxy = 0
-        temp = 0
+        if selected_planet != None:
+            planet = selected_planet
 
-        if selected_planet != -1:
-            planet = sys.bodies[selected_planet]
-            if sqrt((player.pos.x - planet.pos.x) ** 2 + (player.pos.y - planet.pos.y) ** 2 + (player.pos.z - planet.pos.z) ** 2) <= planet.radius + 250:
-                if selected_planet == 0:
-                    eau = 0
-                    oxy = 0
+            eau = 0
+            oxy = 0
+            temp = 0
+            if rl.vector_3distance_sqr(player.pos, planet.pos) <= (planet.radius + 250)**2:
+                if selected_planet == sys.bodies[0]: # if selecting the sun
                     temp = 15000
                 else:
                     eau = planet.eau
