@@ -2,6 +2,7 @@ from math import inf, pi, log1p
 
 import pyray as rl
 from pyray import Rectangle, Vector2, Vector3
+from cockpit import Cockpit
 
 from icosphere import gen_icosphere
 from map import Map
@@ -10,7 +11,7 @@ from sky import Sky
 from utils import get_projected_sphere_radius, randf
 from player import Player
 from system import Planet, System, New_system
-from colors import BLACK, WHITE, GREEN
+from colors import BLACK, WHITE
 
 def get_viewed_planet(player: Player, sys: System) -> Planet | None:
     cx = rl.get_render_width()/2
@@ -54,7 +55,7 @@ def main():
     wormhole_effect = WormholeEffect()
     sun_mat = SunMaterial()
 
-    vaisseau = rl.load_texture("assets/cockpit.png")
+    cockpit = Cockpit()
 
     system = New_system()
     sys = system.new_sys()
@@ -194,33 +195,10 @@ def main():
         # draw UI
         rl.draw_fps(10, 10)
 
-        rl.draw_texture_pro(vaisseau, Rectangle(0, 0, 1280, 720),
-                            Rectangle(0, 0, rl.get_render_width(), rl.get_render_height()), Vector2(0, 0), 0.0,
-                            WHITE)
+        cockpit.draw(player, sys, selected_planet)
 
         if selected_planet != None:
             planet = selected_planet
-
-            eau = 0
-            oxy = 0
-            temp = 0
-            if rl.vector_3distance_sqr(player.pos, planet.pos) <= (planet.radius + 250)**2:
-                if selected_planet == sys.bodies[0]: # if selecting the sun
-                    temp = 15000
-                else:
-                    eau = planet.eau
-                    oxy = planet.oxygen
-                    temp = planet.temp
-
-            eau_txt = str(eau) + "% H²0"
-            water_width = rl.measure_text(eau_txt, 20)
-            rl.draw_text(eau_txt, int(2*cx / 2.294 - (water_width / 2)), int(2*cy / 1.58), 20, GREEN)
-            oxy_txt = str(oxy) + "% de O²"
-            oxy_width = rl.measure_text(oxy_txt, 20)
-            rl.draw_text(oxy_txt, int(2*cx / 2.006 - (oxy_width / 2)), int(2*cy / 1.38), 20, GREEN)
-            temp_txt = str(temp) + " C°"
-            temp_width = rl.measure_text(temp_txt, 20)
-            rl.draw_text(temp_txt, int(2*cx / 1.778 - (temp_width / 2)), int(2*cy / 1.58), 20, GREEN)
 
             # show the relative velocity between the player and the selected planet
             pos_diff = rl.vector3_subtract(planet.pos, player.pos)

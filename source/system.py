@@ -34,11 +34,14 @@ class Planet:
         warp = randfr(0.1, 1.5)
         ridged = bool(randint(0, 1))
         self.noise = generate_noise((1500, 500), Vector3(scale, scale, scale), Vector2(randint(0, 10000), randint(0, 10000)), octaves, lacunarity, gain, warp, ridged, False)
+        rl.set_texture_filter(self.noise.texture, rl.TextureFilter.TEXTURE_FILTER_BILINEAR)
+
         self.oxygen = randint(0, 30)
         self.temp = randint(-150, 150)
         self.eau = randint(0, 75)
         self.colors = self.gen_layer() 
-        rl.set_texture_filter(self.noise.texture, rl.TextureFilter.TEXTURE_FILTER_BILINEAR)
+
+        self.scanned = False
 
     def orbit(self, G: float, dt: float):
         """Simulate perfectly circular orbit with keplerian mechanics"""
