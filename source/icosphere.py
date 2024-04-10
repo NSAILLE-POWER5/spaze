@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from math import asin, atan2, pi, sqrt
+from math import sqrt
 from pyray import Mesh, Vector3, vector3_add, vector3_normalize, vector3_scale
 from raylib import ffi
 import pyray as rl

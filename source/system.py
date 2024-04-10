@@ -139,22 +139,20 @@ class System:
             body.orbit(G, dt)
             body.compute_transform()
 
-class New_system:
-    G = 5
-
-    def new_sys(self):
-        system = System(Planet(0, None, self.G, 20, 250))
+class NewSystem:
+    def new_sys(self, G: float) -> System:
+        system = System(Planet(0, None, G, 20, 250))
 
         nb_planet = randint(3,7)
 
         for i in range(nb_planet):
             radius = randint(40, 75)
-            system.add(Planet(500 + randint(175, 250)*i, system.bodies[0], self.G, 0.075*radius//1, radius))
+            system.add(Planet(500 + randint(175, 250)*i, system.bodies[0], G, 0.075*radius//1, radius))
 
         #Génère de façon aléatoire des lunes (1 chance sur 4 par planète)  
         for j in range(1, nb_planet +1):
             lune = randint(1, 100)
             if lune <= 25:
                 radius = randint(12, 25)
-                system.add(Planet(125, system.bodies[j], self.G, 0.075 * radius // 1, radius))
+                system.add(Planet(125, system.bodies[j], G, 0.075 * radius // 1, radius))
         return system

@@ -10,10 +10,11 @@ from shaders import PlanetMaterial, SunMaterial, WormholeEffect, WormholeMateria
 from sky import Sky
 from utils import get_projected_sphere_radius, randf
 from player import Player
-from system import Planet, System, New_system
+from system import Planet, System, NewSystem
 from colors import BLACK, WHITE
 
 def get_viewed_planet(player: Player, sys: System) -> Planet | None:
+    """Get the closest planet that the player is currently looking at"""
     cx = rl.get_render_width()/2
     cy = rl.get_render_height()/2
     ray = rl.get_mouse_ray(Vector2(cx, cy), player.camera)
@@ -57,8 +58,8 @@ def main():
 
     cockpit = Cockpit()
 
-    system = New_system()
-    sys = system.new_sys()
+    system = NewSystem()
+    sys = system.new_sys(G)
     # initialize positions and transforms since the game is paused by default
     # and randomize orbit angles
     for planet in sys.planets():
@@ -93,7 +94,7 @@ def main():
         selected_planet = None
 
         sys.unload()
-        sys = system.new_sys()
+        sys = system.new_sys(G)
         # randomize orbit angles
         for planet in sys.planets():
             planet.orbit_angle = randf() * 2 * pi
